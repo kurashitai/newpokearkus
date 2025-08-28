@@ -1,0 +1,312 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 217 91.2% 59.8%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 217 91.2% 40%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 217 91.2% 59.8%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 98%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 217 91.2% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground min-h-screen;
+    background-image: url("/POKEARKUS.jpg");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    @apply bg-gradient-to-b from-background/50 to-background/60;
+    backdrop-filter: blur(8px);
+    z-index: -1;
+  }
+}
+
+/* Container para evitar scroll durante a transição */
+.w-full.overflow-hidden {
+  margin-right: calc(-1 * (100vw - 100%));
+}
+
+/* Flip Card Styles */
+.professions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  width: 100%;
+  padding: 0.5rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.cards-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  overflow: hidden;
+}
+
+.flip-div-wrapper {
+  perspective: 1000px;
+  width: 100%;
+  min-width: calc(70px + 2vw);
+  max-width: 382px;
+  padding-bottom: 208.12%;
+  position: relative;
+  margin: 0 auto;
+  transform-style: preserve-3d;
+}
+
+.flip-div-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.flip-div-wrapper:hover .flip-div-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-div-front, .flip-div-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.flip-div-front {
+  transform: rotateY(0);
+}
+
+.flip-div-back {
+  transform: rotateY(180deg);
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 10px;
+}
+
+.flip-card-text {
+  font-size: clamp(0.75rem, 1.5vw, 1rem);
+  line-height: 1.4;
+  padding: 0.5rem;
+}
+
+.prof-name {
+  font-size: clamp(0.875rem, 2vw, 1.25rem);
+  white-space: nowrap;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Media queries para ajustar o tamanho dos cards em telas menores */
+@media (max-width: 768px) {
+  .professions-grid {
+    gap: 0.25rem;
+    padding: 0.25rem;
+  }
+  
+  .flip-div-wrapper {
+    min-width: calc(50px + 2vw);
+  }
+  
+  .flip-card-text {
+    font-size: clamp(0.625rem, 1.2vw, 0.875rem);
+  }
+  
+  .prof-name {
+    font-size: clamp(0.75rem, 1.5vw, 1rem);
+  }
+}
+
+html, body {
+  overflow-x: hidden;
+}
+
+/* Scrollbar personalizada para melhor aparência */
+.professions-grid::-webkit-scrollbar {
+  height: 4px;
+}
+
+.professions-grid::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.professions-grid::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.professions-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Importação da fonte Sono */
+@import url('https://fonts.googleapis.com/css2?family=Sono:wght@400;700&display=swap');
+
+/* Navegação */
+.nav-link-hover {
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link-hover::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: hsl(var(--primary));
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.nav-link-hover:hover::after {
+  transform: translateX(0);
+}
+
+/* Hero Slider Styles */
+.hero-swiper {
+  padding: 1rem !important;
+  margin: 0 -1rem;
+}
+
+.hero-slide {
+  width: min(100%, 1200px);
+  opacity: 0.4;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.swiper-slide-active {
+  opacity: 1;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  color: white !important;
+  transition: all 0.3s ease !important;
+  width: 44px !important;
+  height: 44px !important;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 50%;
+}
+
+.swiper-button-next:hover,
+.swiper-button-prev:hover {
+  background: rgba(0, 0, 0, 0.5);
+  transform: scale(1.1);
+}
+
+.swiper-button-next:after,
+.swiper-button-prev:after {
+  font-size: 1.25rem !important;
+}
+
+.swiper-pagination-bullet {
+  background: white !important;
+  opacity: 0.5 !important;
+  transition: all 0.3s ease !important;
+}
+
+.swiper-pagination-bullet-active {
+  opacity: 1 !important;
+  transform: scale(1.2);
+}
+
+@media (max-width: 768px) {
+  .hero-slide {
+    width: min(100%, 600px);
+  }
+  
+  .swiper-button-next,
+  .swiper-button-prev {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  
+  .swiper-button-next:after,
+  .swiper-button-prev:after {
+    font-size: 1rem !important;
+  }
+}
+
+/* Social Buttons */
+.social-button {
+  --button-color: #000;
+  position: relative;
+  isolation: isolate;
+}
+
+.social-button::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  background: radial-gradient(circle at center, var(--button-color), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.social-button:hover::before {
+  opacity: 0.15;
+}
