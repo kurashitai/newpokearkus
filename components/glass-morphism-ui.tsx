@@ -12,7 +12,7 @@ export const GlassCard = forwardRef<
   <div
     ref={ref}
     className={cn(
-      "bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-xl",
+      "bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl shadow-xl",
       className
     )}
     {...props}
@@ -42,7 +42,7 @@ export const GlassButton = forwardRef<
       ref={ref}
       variant="ghost"
       className={cn(
-        "backdrop-blur-md border transition-all duration-200",
+        "backdrop-blur-sm border transition-all duration-200",
         variantStyles[variant],
         className
       )}
@@ -62,7 +62,7 @@ export const GlassInput = forwardRef<
   <Input
     ref={ref}
     className={cn(
-      "bg-white/10 backdrop-blur-md border-white/20 text-foreground placeholder:text-muted-foreground",
+      "bg-white/10 backdrop-blur-sm border-white/20 text-foreground placeholder:text-muted-foreground",
       "focus:bg-white/20 focus:border-white/40",
       className
     )}

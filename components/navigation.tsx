@@ -75,14 +75,14 @@ export function Navigation() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         className={cn(
-          "fixed top-4 left-1/3 -translate-x-1/2 z-50 w-[95%] max-w-5xl",
+          "fixed top-4 left-0 right-0 flex justify-center z-50",
           "transition-all duration-500 ease-out",
           scrolled
-            ? "nav-premium shadow-lg backdrop-blur-20"
+            ? "bg-black/80 shadow-lg backdrop-blur-sm"
             : "bg-transparent"
         )}
       >
-        <div className="flex h-16 items-center justify-between px-6 relative">
+        <div className="flex h-16 items-center justify-between px-6 relative w-[95%] max-w-5xl">
           {/* Logo - Left Side */}
           <motion.div
             whileHover={{ scale: 1.05 }}
@@ -105,8 +105,8 @@ export function Navigation() {
             </Link>
           </motion.div>
 
-          {/* Desktop Menu - Absolute Center */}
-          <div className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          {/* Desktop Menu - Centered with flex-1 to take available space */}
+          <div className="hidden md:flex flex-1 justify-center">
             <div className="flex items-center space-x-1">
               {menuItems.map((item, index) => (
                 <motion.div
@@ -175,7 +175,7 @@ export function Navigation() {
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="lg:hidden"
+              className="md:hidden"
             >
               <Button
                 variant="ghost"
@@ -222,7 +222,7 @@ export function Navigation() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
               onClick={toggle}
             />
             
@@ -232,7 +232,7 @@ export function Navigation() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-background/95 backdrop-blur-xl border-l border-border z-50 lg:hidden"
+              className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-background/95 backdrop-blur-sm border-l border-border z-50 md:hidden"
             >
               <div className="flex flex-col h-full">
                 {/* Mobile Header */}
@@ -267,6 +267,7 @@ export function Navigation() {
                             "hover:bg-accent hover:text-accent-foreground",
                             isActive(item.href) && "bg-primary/10 text-primary border-l-4 border-primary"
                           )}
+                          onClick={toggle} // Close menu when item is clicked
                         >
                           <div className="font-medium">{item.label}</div>
                           <div className="text-sm text-muted-foreground mt-1">

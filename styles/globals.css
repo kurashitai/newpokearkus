@@ -84,7 +84,7 @@
 
 @layer components {
   .glass-effect {
-    @apply bg-white/10 backdrop-blur-md;
+    @apply bg-white/10 backdrop-blur-sm;
   }
 
   .navbar {

@@ -83,7 +83,7 @@ export function PerformanceMonitor({
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className="bg-black/90 text-white rounded-lg p-4 backdrop-blur-md border border-white/20 min-w-80 max-w-96"
+            className="bg-black/90 text-white rounded-lg p-4 backdrop-blur-sm border border-white/20 min-w-80 max-w-96"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-4">

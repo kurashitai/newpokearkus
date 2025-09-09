@@ -19,7 +19,7 @@ interface AnimatedCardProps extends HTMLAttributes<HTMLDivElement> {
 
 const cardVariants = {
   default: "bg-card text-card-foreground border border-border",
-  glass: "bg-white/10 backdrop-blur-md border border-white/20",
+  glass: "bg-white/10 backdrop-blur-sm border border-white/20",
   premium: "bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border border-slate-200 dark:border-slate-700",
   pokemon: "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border border-blue-200 dark:border-blue-800"
 };
