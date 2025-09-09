@@ -302,7 +302,7 @@ export function PWAOfflineIndicator({ className }: PWAOfflineIndicatorProps) {
   }
 
   return (
-    <div className={`fixed bottom-4 left-4 z-50 ${className}`}>
+    <div className={`fixed bottom-4 md:bottom-6 left-4 z-50 ${className}`}>
       <div className="bg-yellow-500 text-white px-3 py-2 rounded-lg shadow-lg flex items-center gap-2">
         <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
         <span className="text-sm font-medium">Offline Mode</span>

@@ -112,7 +112,7 @@ export default function RootLayout({
                 <PWAUpdateBanner />
                 <div className="relative min-h-screen flex flex-col">
                   <Navigation />
-                  <main className="flex-1 relative">
+                  <main className="flex-1 relative pt-36 md:pt-20">
                     {children}
                   </main>
                 </div>

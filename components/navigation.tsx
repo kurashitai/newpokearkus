@@ -11,10 +11,17 @@ import { Button } from "@/components/ui/button";
 import { useMobileMenuOpen, useMobileMenuToggle } from "@/lib/store";
 import { motionVariants } from "@/components/providers/motion-provider";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Navigation() {
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const isOpen = useMobileMenuOpen();
@@ -65,6 +72,11 @@ export function Navigation() {
     return pathname.startsWith(href);
   };
 
+  // Toggle dropdown function
+  const toggleDropdown = () => {
+    setDropdownOpen(!dropdownOpen);
+  };
+
   if (!mounted) return null;
 
   return (
@@ -76,10 +88,7 @@ export function Navigation() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className={cn(
           "fixed top-4 left-0 right-0 flex justify-center z-50",
-          "transition-all duration-500 ease-out",
-          scrolled
-            ? "bg-black/80 shadow-lg backdrop-blur-sm"
-            : "bg-transparent"
+          "transition-all duration-500 ease-out"
         )}
       >
         <div className="flex h-16 items-center justify-between px-6 relative w-[95%] max-w-5xl">
@@ -107,7 +116,7 @@ export function Navigation() {
 
           {/* Desktop Menu - Centered with flex-1 to take available space */}
           <div className="hidden md:flex flex-1 justify-center">
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-1 z-10">
               {menuItems.map((item, index) => (
                 <motion.div
                   key={item.href}
@@ -129,6 +138,22 @@ export function Navigation() {
                 </motion.div>
               ))}
             </div>
+            
+            {/* Dropdown Menu Trigger */}
+            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="px-3 ml-2 z-10" onClick={toggleDropdown}>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {menuItems.map((item) => (
+                  <DropdownMenuItem key={item.href} asChild>
+                    <Link href={item.href}>{item.label}</Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Right Actions */}
@@ -209,6 +234,16 @@ export function Navigation() {
               </Button>
             </motion.div>
           </div>
+          
+          {/* Background highlight that only spans the navigation container */}
+          <div 
+            className={cn(
+              "absolute inset-0 rounded-xl transition-all duration-500 ease-out -z-10",
+              scrolled
+                ? "bg-black/80 shadow-lg backdrop-blur-sm"
+                : "bg-transparent"
+            )}
+          />
         </div>
       </motion.nav>
 
