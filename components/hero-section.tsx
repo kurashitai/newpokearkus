@@ -31,7 +31,7 @@ export function HeroSection() {
             </div>
           </div>
           <div className="relative hidden md:block">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent rounded-3xl" />
+            <div className="absolute inset-0 from-primary/20 to-transparent rounded-3xl" />
             <Image
               src="https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?auto=format&fit=crop&q=80&w=800&h=600"
               alt="Pokémon Trading Cards"

@@ -206,7 +206,7 @@ export function PremiumMapInterface() {
               {/* Map Container */}
               <div
                 ref={mapRef}
-                className="relative w-full h-full bg-gradient-to-br from-blue-900/20 via-green-900/20 to-purple-900/20 rounded-xl overflow-hidden"
+                className="relative w-full h-full from-blue-900/20 via-green-900/20 to-purple-900/20 rounded-xl overflow-hidden"
                 style={{
                   transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
                   transition: 'transform 0.3s ease',
@@ -214,7 +214,7 @@ export function PremiumMapInterface() {
               >
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-20">
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/10" />
+                  <div className="absolute inset-0 from-white/5 to-white/10" />
                 </div>
 
                 {/* Pokemon Markers */}

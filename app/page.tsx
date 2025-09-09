@@ -61,7 +61,7 @@ export default function Home() {
       <HeroStackScroller />
       
       {/* Features Section */}
-      <section className="py-24 bg-gradient-to-br from-background via-primary/5 to-purple-500/5">
+      <section className="py-24 from-background via-primary/5 to-purple-500/5">
         <div className="container mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 40 }}

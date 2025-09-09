@@ -213,7 +213,7 @@ export function ModernWikiHub() {
                       )}
                       
                       {/* Icon */}
-                      <div className={`inline-flex items-center justify-center w-12 h-12 lg:w-16 lg:h-16 rounded-2xl bg-gradient-to-br ${category.gradient} mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                      <div className={`inline-flex items-center justify-center w-12 h-12 lg:w-16 lg:h-16 rounded-2xl ${category.gradient} mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-300`}>
                         <Icon className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
                       </div>
 

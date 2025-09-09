@@ -242,7 +242,7 @@ export default function WikiPage() {
     })).filter(category => category.items.length > 0);
   }, [searchQuery]);
   return (
-    <div className="min-h-screen py-24 from-background via-primary/5 to-purple-500/5">
+    <div className="min-h-screen pb-24 from-background via-primary/5 to-purple-500/5">
       <div className="container mx-auto px-4">
         {/* Header with Search */}
         <div className="text-center mb-12">

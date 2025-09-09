@@ -132,7 +132,7 @@ export function CommunitySection() {
                   transition={{ delay: index * 0.1 + 0.3 }}
                   className="flex items-start space-x-4 group"
                 >
-                  <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                  <div className={`flex-shrink-0 w-12 h-12 rounded-xl ${feature.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                   

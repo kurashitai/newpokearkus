@@ -487,7 +487,7 @@ const BannerSlide = ({ banner }) => {
 ```jsx
 const DownloadSection = () => {
   return (
-    <section className="py-24 bg-gradient-to-br from-primary/5 to-purple-500/5">
+    <section className="py-24 from-primary/5 to-purple-500/5">
       <div className="container mx-auto px-6">
         <div className="max-w-4xl mx-auto text-center">
           {/* Header */}

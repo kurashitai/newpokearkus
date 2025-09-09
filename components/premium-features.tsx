@@ -112,7 +112,7 @@ export function PremiumFeatures() {
               >
                 <div className="glass-card h-full p-8 hover:scale-105 transition-transform duration-300">
                   {/* Icon */}
-                  <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.gradient} mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                  <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${feature.gradient} mb-6 group-hover:scale-110 transition-transform duration-300`}>
                     <Icon className="w-8 h-8 text-white" />
                   </div>
 

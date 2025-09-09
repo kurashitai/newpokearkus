@@ -1257,7 +1257,7 @@ export function StackScrollHero() {
     <section className="relative h-screen overflow-hidden">
       <motion.div
         style={{ y }}
-        className="absolute inset-0 bg-gradient-to-br from-blue-600 to-purple-800"
+        className="absolute inset-0 from-blue-600 to-purple-800"
       >
         <div className="flex items-center justify-center h-full">
           <motion.h1

@@ -318,7 +318,7 @@ const PokedexMap = () => {
   })
   
   return (
-    <div className="relative w-full h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900">
+    <div className="relative w-full h-screen from-blue-900 via-purple-900 to-indigo-900">
       {/* Premium Map Header */}
       <div className="absolute top-0 left-0 right-0 z-20 p-6">
         <div className="flex items-center justify-between">
@@ -563,7 +563,7 @@ import { Suspense } from 'react'
 
 const Pokemon3DCard = ({ pokemonId, name }) => {
   return (
-    <div className="relative w-64 h-64 rounded-2xl overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600">
+    <div className="relative w-64 h-64 rounded-2xl overflow-hidden from-blue-500 to-purple-600">
       <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
         <Suspense fallback={<PokemonSkeleton />}>
           <ambientLight intensity={0.5} />

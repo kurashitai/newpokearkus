@@ -553,9 +553,9 @@ export default function MapaInterativo() {
   }, [regionFilters, typeFilters, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-purple-500/5">
+    <div className="min-h-screen from-background via-primary/5 to-purple-500/5">
       {/* Header */}
-      <div className="relative z-10 pt-24 pb-6">
+      <div className="relative z-10 pb-6">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-4">Mapa Interativo</h1>
@@ -575,7 +575,7 @@ export default function MapaInterativo() {
               <CardContent className="p-0 h-full">
                 <div
                   ref={containerRef}
-                  className="relative h-full overflow-hidden cursor-grab active:cursor-grabbing bg-gradient-to-br from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950"
+                  className="relative h-full overflow-hidden cursor-grab active:cursor-grabbing from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950"
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}

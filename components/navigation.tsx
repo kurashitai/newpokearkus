@@ -72,12 +72,12 @@ export function Navigation() {
     return pathname.startsWith(href);
   };
 
+  if (!mounted) return null;
+
   // Toggle dropdown function
   const toggleDropdown = () => {
     setDropdownOpen(!dropdownOpen);
   };
-
-  if (!mounted) return null;
 
   return (
     <>
@@ -138,22 +138,6 @@ export function Navigation() {
                 </motion.div>
               ))}
             </div>
-            
-            {/* Dropdown Menu Trigger */}
-            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="px-3 ml-2 z-10" onClick={toggleDropdown}>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                {menuItems.map((item) => (
-                  <DropdownMenuItem key={item.href} asChild>
-                    <Link href={item.href}>{item.label}</Link>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
 
           {/* Right Actions */}
@@ -196,43 +180,23 @@ export function Navigation() {
               </Button>
             </motion.div>
 
-            {/* Mobile Menu Toggle */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="md:hidden"
-            >
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggle}
-                className="h-9 w-9 p-0"
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  {isOpen ? (
-                    <motion.div
-                      key="close"
-                      initial={{ scale: 0, rotate: -90 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      exit={{ scale: 0, rotate: 90 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <X className="h-4 w-4" />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="menu"
-                      initial={{ scale: 0, rotate: 90 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      exit={{ scale: 0, rotate: -90 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Menu className="h-4 w-4" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </Button>
-            </motion.div>
+            {/* Dropdown Menu - Visible only on smaller screens */}
+            <div className="md:hidden">
+              <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="px-3 ml-2 z-10" onClick={toggleDropdown}>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {menuItems.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link href={item.href}>{item.label}</Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
           
           {/* Background highlight that only spans the navigation container */}
@@ -246,85 +210,6 @@ export function Navigation() {
           />
         </div>
       </motion.nav>
-
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
-              onClick={toggle}
-            />
-            
-            {/* Mobile Menu */}
-            <motion.div
-              initial={{ opacity: 0, x: '100%' }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: '100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-background/95 backdrop-blur-sm border-l border-border z-50 md:hidden"
-            >
-              <div className="flex flex-col h-full">
-                {/* Mobile Header */}
-                <div className="flex items-center justify-between p-6 border-b border-border">
-                  <div className="flex items-center space-x-3">
-                    <div className="relative w-8 h-8">
-                      <Image
-                        src="/logo.png"
-                        alt="PokeArkus Logo"
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
-                    <span className="font-bold text-lg">PokeArkus</span>
-                  </div>
-                </div>
-
-                {/* Mobile Menu Items */}
-                <div className="flex-1 overflow-y-auto">
-                  <div className="p-6 space-y-1">
-                    {menuItems.map((item, index) => (
-                      <motion.div
-                        key={item.href}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <Link
-                          href={item.href}
-                          className={cn(
-                            "block px-4 py-3 rounded-lg transition-all duration-200",
-                            "hover:bg-accent hover:text-accent-foreground",
-                            isActive(item.href) && "bg-primary/10 text-primary border-l-4 border-primary"
-                          )}
-                          onClick={toggle} // Close menu when item is clicked
-                        >
-                          <div className="font-medium">{item.label}</div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            {item.description}
-                          </div>
-                        </Link>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Mobile Footer */}
-                <div className="p-6 border-t border-border">
-                  <div className="text-center text-sm text-muted-foreground">
-                    © 2024 PokeArkus Team
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* Spacer */}
       <div className="h-24" />

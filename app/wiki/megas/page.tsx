@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 export default function WikiSubpage() {
   return (
-    <div className="min-h-screen py-24 bg-gradient-to-br from-background via-primary/5 to-purple-500/5">
+    <div className="min-h-screen py-24 from-background via-primary/5 to-purple-500/5">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">

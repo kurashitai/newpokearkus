@@ -83,7 +83,7 @@ function AnimatedCounter({
 
 export function StatsSection() {
   return (
-    <section className="relative py-24 bg-gradient-to-br from-primary/5 via-purple-500/5 to-blue-500/5">
+    <section className="relative py-24 from-primary/5 via-purple-500/5 to-blue-500/5">
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Floating Orbs */}
@@ -154,7 +154,7 @@ export function StatsSection() {
                       type: 'spring',
                       stiffness: 200 
                     }}
-                    className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-purple-600 rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300"
+                    className="inline-flex items-center justify-center w-16 h-16 from-primary to-purple-600 rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300"
                   >
                     <Icon className="w-8 h-8 text-white" />
                   </motion.div>
