@@ -1,101 +1,329 @@
-import { QuickLinks } from "@/components/quick-links";
-import { MainContent } from "@/components/main-content";
-import { Sidebar } from "@/components/sidebar";
-import { Import } from "lucide-react";
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Image from "next/image";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Download, Monitor, Smartphone, CheckCircle, Star, Shield, Zap, Users } from "lucide-react";
+
+export const dynamic = 'force-dynamic';
+
+interface PlatformFeature {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}
+
+interface DownloadOption {
+  platform: string;
+  icon: React.ReactNode;
+  version: string;
+  size: string;
+  requirements: string[];
+  features: PlatformFeature[];
+  downloads: {
+    primary: {
+      label: string;
+      url: string;
+      recommended?: boolean;
+    };
+    secondary?: {
+      label: string;
+      url: string;
+    };
+  };
+  color: string;
+}
+
+const downloadOptions: DownloadOption[] = [
+  {
+    platform: "Windows",
+    icon: <Monitor className="h-8 w-8" />,
+    version: "v2.1.0",
+    size: "245 MB",
+    requirements: [
+      "Windows 7 or higher",
+      "DirectX 9.0 or OpenGL 1.2+",
+      "4GB+ RAM",
+      "1GB+ Storage",
+      "Stable internet connection"
+    ],
+    features: [
+      {
+        title: "Full Game Experience",
+        description: "Complete Pokemon adventure with all features",
+        icon: <Star className="h-5 w-5" />
+      },
+      {
+        title: "Auto-Updates",
+        description: "Automatic game updates and patches",
+        icon: <Zap className="h-5 w-5" />
+      },
+      {
+        title: "Community Features",
+        description: "Full multiplayer and social features",
+        icon: <Users className="h-5 w-5" />
+      }
+    ],
+    downloads: {
+      primary: {
+        label: "Download with Launcher",
+        url: "/downloads/poke-arkus-launcher.exe",
+        recommended: true
+      },
+      secondary: {
+        label: "Download Standalone",
+        url: "/downloads/poke-arkus.zip"
+      }
+    },
+    color: "from-blue-500 to-cyan-500"
+  },
+  {
+    platform: "Android",
+    icon: <Smartphone className="h-8 w-8" />,
+    version: "v2.1.0",
+    size: "198 MB",
+    requirements: [
+      "Android 7.0 or higher",
+      "OpenGL ES 2.0+",
+      "4GB+ RAM",
+      "500MB+ Storage",
+      "Stable internet connection"
+    ],
+    features: [
+      {
+        title: "Mobile Optimized",
+        description: "Designed specifically for mobile devices",
+        icon: <Smartphone className="h-5 w-5" />
+      },
+      {
+        title: "Touch Controls",
+        description: "Intuitive touch-based gameplay",
+        icon: <Zap className="h-5 w-5" />
+      },
+      {
+        title: "Cross-Platform",
+        description: "Play with PC and other mobile users",
+        icon: <Users className="h-5 w-5" />
+      }
+    ],
+    downloads: {
+      primary: {
+        label: "Download x64",
+        url: "/downloads/poke-arkus-x64.apk",
+        recommended: true
+      },
+      secondary: {
+        label: "Download x32",
+        url: "/downloads/poke-arkus-x32.apk"
+      }
+    },
+    color: "from-green-500 to-emerald-500"
+  }
+];
+
+const gameFeatures = [
+  {
+    icon: <Shield className="h-6 w-6" />,
+    title: "Secure & Safe",
+    description: "Virus-free downloads with digital signatures"
+  },
+  {
+    icon: <Zap className="h-6 w-6" />,
+    title: "Optimized Performance",
+    description: "Smooth gameplay on all supported devices"
+  },
+  {
+    icon: <Users className="h-6 w-6" />,
+    title: "Active Community",
+    description: "Join 10,000+ active players worldwide"
+  },
+  {
+    icon: <Star className="h-6 w-6" />,
+    title: "Regular Updates",
+    description: "New content and features added monthly"
+  }
+];
+
+export default function DownloadPage() {
   return (
-    <div className="container max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-    <div className="w-full">
-      <div
-        className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-stretch lg:justify-between lg:gap-40 p-5 lg:p-10 my-40 gap-20 mb-10"
-        id="download"
-      >
-        <div className="flex flex-col justify-between bg-gray-200 rounded-3xl p-5 lg:p-10 flex-1">
-          <Image
-            className="justify-center items-center relative mx-[35%] -mt-24 pb-6"
-            src={"/windows.png"}
-            width={129}
-            height={129}
-            alt="windows download"
-          />
-          <span className="relative z-10 text-black font-extrabold text-3xl pb-10 text-center">
-            REQUISITOS MINIMOS
-          </span>
-          <ul className="uppercase text-xl font-extrabold text-center list-disc py-4 bg-white rounded-3xl">
-            <div className="flex flex-col gap-2 text-left pl-10">
-              <li className="text-lg italic text-slate-900">Windows 7 ou superior</li>
-              <li className="text-lg italic text-slate-900">DirectX 9.0 ou OPGL 1.2+</li>
-              <li className="text-lg italic text-slate-900">4GB+ de Memoria RAM</li>
-              <li className="text-lg italic text-slate-900">1GB+ de Armazenamento Livre</li>
-              <li className="text-lg italic text-slate-900">Boa conexão com a internet</li>
-            </div>
-          </ul>
-          <div className="flex justify-center pt-8">
-            <a
-              href="/downloads/poke-arkus-launcher.exe"
-              download="poke-arkus-launcher.exe"
-              rel="noopener noreferrer"
+    <div className="min-h-screen py-24 bg-gradient-to-br from-background via-primary/5 to-purple-500/5">
+      <div className="container mx-auto px-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-16"
+        >
+          <h1 className="text-5xl md:text-6xl font-bold mb-6">
+            Download
+            <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+              {" "}PokeArkus
+            </span>
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            Start your Pokemon journey today. Download PokeArkus and experience the ultimate 
+            Pokemon adventure with interactive maps, comprehensive guides, and community features.
+          </p>
+        </motion.div>
+
+        {/* Download Options */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-16">
+          {downloadOptions.map((option, index) => (
+            <motion.div
+              key={option.platform}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.2 }}
+              whileHover={{ scale: 1.02, y: -5 }}
+              className="group w-full"
             >
-              <button className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 rounded-lg text-lg font-extrabold px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">
-              DOWNLOAD COM LAUNCHER
-              </button>
-            </a>
-            <a
-              href="/downloads/poke-arkus.zip"
-              download="poke-arkus.zip"
-              rel="noopener noreferrer"
-            >
-              <button className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 rounded-lg text-lg font-extrabold px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">
-              DOWNLOAD SEM LAUNCHER
-              </button>
-            </a>
-          </div>
+              <Card className="h-full border-2 hover:border-primary/20 transition-all duration-300 hover:shadow-xl">
+                <CardHeader className="text-center pb-6">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className={`p-3 sm:p-4 rounded-full bg-gradient-to-r ${option.color} text-white mb-4 group-hover:scale-110 transition-transform`}>
+                      {option.icon}
+                    </div>
+                  </div>
+                  <CardTitle className="text-xl sm:text-2xl mb-2">{option.platform}</CardTitle>
+                  <div className="flex items-center justify-center gap-2 sm:gap-4 text-sm text-muted-foreground flex-wrap">
+                    <Badge variant="secondary">{option.version}</Badge>
+                    <span>{option.size}</span>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-6">
+                  {/* Requirements */}
+                  <div>
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      System Requirements
+                    </h4>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      {option.requirements.map((req, reqIndex) => (
+                        <li key={reqIndex} className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-primary rounded-full" />
+                          {req}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <Separator />
+
+                  {/* Features */}
+                  <div>
+                    <h4 className="font-semibold mb-3">Platform Features</h4>
+                    <div className="space-y-3">
+                      {option.features.map((feature, featureIndex) => (
+                        <div key={featureIndex} className="flex items-start gap-3">
+                          <div className="p-1.5 rounded bg-primary/10 text-primary">
+                            {feature.icon}
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">{feature.title}</div>
+                            <div className="text-xs text-muted-foreground">{feature.description}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Download Buttons */}
+                  <div className="space-y-3">
+                    <a
+                      href={option.downloads.primary.url}
+                      download
+                      className="block"
+                    >
+                      <Button size="lg" className="w-full text-base sm:text-lg font-semibold group/btn px-4 py-3">
+                        <Download className="h-4 w-4 sm:h-5 sm:w-5 mr-2 group-hover/btn:animate-bounce" />
+                        <span className="truncate">{option.downloads.primary.label}</span>
+                        {option.downloads.primary.recommended && (
+                          <Badge className="ml-2 bg-green-500 hover:bg-green-600 text-xs hidden sm:inline-flex">Recommended</Badge>
+                        )}
+                      </Button>
+                    </a>
+                    
+                    {option.downloads.secondary && (
+                      <a
+                        href={option.downloads.secondary.url}
+                        download
+                        className="block"
+                      >
+                        <Button variant="outline" size="lg" className="w-full text-base sm:text-lg font-semibold px-4 py-3">
+                          <Download className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                          <span className="truncate">{option.downloads.secondary.label}</span>
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
         </div>
-        <div className="flex flex-col justify-between bg-gray-200 rounded-3xl p-5 lg:p-10 flex-1">
-          <Image
-            src={"/android.png"}
-            className="justify-center items-center relative mx-[35%] -mt-24 pb-6"
-            width={129}
-            height={129}
-            alt="android download"
-          />
-          <span className="relative z-10 text-black font-extrabold text-3xl pb-10 text-center">
-            REQUISITOS MINIMOS
-          </span>
-          <ul className="uppercase text-xl font-extrabold text-center list-disc py-4 bg-white rounded-3xl">
-            <div className="flex flex-col gap-2 text-left pl-10">
-              <li className="text-lg italic text-slate-900">Android 7 ou superior</li>
-              <li className="text-lg italic text-slate-900">DirectX 9.0 ou OPGL 1.2+</li>
-              <li className="text-lg italic text-slate-900">4GB+ de Memoria RAM</li>
-              <li className="text-lg italic text-slate-900">500mb de Armazenamento Livre</li>
-              <li className="text-lg italic text-slate-900">Boa conexão com a internet</li>
-            </div>
-          </ul>
-          <div className="flex justify-center pt-8">
-            <a
-              href="/downloads/poke-arkus-x64.apk"
-              download="poke-arkus-x64.apk"
-              rel="noopener noreferrer"
-            >
-              <button className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 rounded-lg text-xl font-extrabold px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">
-                DOWNLOAD X64
-              </button>
-            </a>
-            <a
-              href="/downloads/poke-arkus-x32.apk"
-              download="poke-arkus-x32.apk"
-              rel="noopener noreferrer"
-            >
-              <button className="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 rounded-lg text-xl font-extrabold px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700">
-                DOWNLOAD X32
-              </button>
-            </a>
+
+        {/* Game Features */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-16"
+        >
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose PokeArkus?</h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Experience the most comprehensive Pokemon adventure with cutting-edge features 
+              and an active community.
+            </p>
           </div>
-        </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {gameFeatures.map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="text-center p-4 sm:p-6 rounded-xl bg-card/50 backdrop-blur-sm border"
+              >
+                <div className="p-2 sm:p-3 rounded-full bg-primary/10 text-primary w-fit mx-auto mb-3 sm:mb-4">
+                  {feature.icon}
+                </div>
+                <h3 className="font-semibold mb-2 text-sm sm:text-base">{feature.title}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Installation Guide */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center bg-card/30 backdrop-blur-sm rounded-2xl p-8 border"
+        >
+          <h2 className="text-3xl font-bold mb-6">Need Help Installing?</h2>
+          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Check our comprehensive installation guide or join our community for support.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+            <Button variant="outline" size="lg" className="text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4">
+              Installation Guide
+            </Button>
+            <Button variant="outline" size="lg" className="text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4">
+              Community Support
+            </Button>
+          </div>
+        </motion.div>
       </div>
-    </div>
     </div>
   );
 }

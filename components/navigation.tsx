@@ -3,21 +3,28 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Moon, Sun } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Moon, Sun, Menu, X, ChevronDown } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { useMobileMenuOpen, useMobileMenuToggle } from "@/lib/store";
+import { motionVariants } from "@/components/providers/motion-provider";
+import { cn } from "@/lib/utils";
 
 export function Navigation() {
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
+  const isOpen = useMobileMenuOpen();
+  const toggle = useMobileMenuToggle();
 
   useEffect(() => {
     setMounted(true);
     
     const handleScroll = () => {
-      const isScrolled = window.scrollY > 10;
+      const isScrolled = window.scrollY > 20;
       setScrolled(isScrolled);
     };
 
@@ -25,11 +32,32 @@ export function Navigation() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    if (isOpen) toggle();
+  }, [pathname, isOpen, toggle]); // Added missing dependencies
+
   const menuItems = [
-    { label: "Início", href: "/" },
-    { label: "Download", href: "/download" },
-    { label: "Mapa", href: "/mapa" },
-    { label: "Wiki", href: "/wiki" },
+    { 
+      label: "Início", 
+      href: "/",
+      description: "Welcome to Poke Arkus"
+    },
+    { 
+      label: "Download", 
+      href: "/download",
+      description: "Get the game"
+    },
+    { 
+      label: "Mapa", 
+      href: "/mapa",
+      description: "Explore Pokemon locations"
+    },
+    { 
+      label: "Wiki", 
+      href: "/wiki",
+      description: "Comprehensive guides"
+    },
   ];
 
   const isActive = (href: string) => {
@@ -41,57 +69,229 @@ export function Navigation() {
 
   return (
     <>
-      <nav
-        className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-2xl rounded-lg transition-all duration-300 ease-in-out ${
+      {/* Main Navigation */}
+      <motion.nav
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className={cn(
+          "fixed top-4 left-1/3 -translate-x-1/2 z-50 w-[95%] max-w-5xl",
+          "transition-all duration-500 ease-out",
           scrolled
-            ? "border border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-lg"
-            : "bg-transparent border-transparent"
-        }`}
+            ? "nav-premium shadow-lg backdrop-blur-20"
+            : "bg-transparent"
+        )}
       >
-        <div className="flex h-14 items-center justify-between px-4">
-          <Link href="/" className="flex items-center h-8">
-            <Image
-              src="/logo.png"
-              alt="PokeArkus Logo"
-              width={80}
-              height={32}
-              className="object-contain h-full w-auto"
-              priority
-            />
-          </Link>
+        <div className="flex h-16 items-center justify-between px-6 relative">
+          {/* Logo - Left Side */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex-shrink-0 z-10"
+          >
+            <Link href="/" className="flex items-center space-x-3">
+              <div className="relative w-10 h-10">
+                <Image
+                  src="/logo.png"
+                  alt="PokeArkus Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <span className="font-bold text-xl bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                PokeArkus
+              </span>
+            </Link>
+          </motion.div>
 
-          <div className="flex gap-8">
-            {menuItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`relative text-base font-medium transition-all duration-300 group ${
-                  isActive(item.href)
-                    ? "text-primary"
-                    : "text-foreground/80 hover:text-primary"
-                }`}
-              >
-                {item.label}
-                <span className="absolute left-0 bottom-0 w-full h-0.5 bg-primary transform scale-x-0 transition-transform duration-300 origin-left group-hover:scale-x-100" />
-              </Link>
-            ))}
+          {/* Desktop Menu - Absolute Center */}
+          <div className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <div className="flex items-center space-x-1">
+              {menuItems.map((item, index) => (
+                <motion.div
+                  key={item.href}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 + 0.2 }}
+                >
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "nav-link px-4 py-2 rounded-lg text-sm font-medium",
+                      "transition-all duration-200 ease-out",
+                      "hover:bg-accent hover:text-accent-foreground",
+                      isActive(item.href) && "bg-primary/10 text-primary"
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
           </div>
 
-          <button
-            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-            className={`rounded-md w-8 h-8 flex items-center justify-center transition-all duration-300 ${
-              scrolled ? "hover:bg-accent" : "hover:bg-white/10"
-            }`}
-          >
-            {theme === "light" ? (
-              <Moon className="h-5 w-5" />
-            ) : (
-              <Sun className="h-5 w-5" />
-            )}
-          </button>
+          {/* Right Actions */}
+          <div className="flex items-center space-x-3 flex-shrink-0 z-10">
+
+            {/* Theme Toggle */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                className="h-9 w-9 p-0"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {theme === "light" ? (
+                    <motion.div
+                      key="moon"
+                      initial={{ scale: 0, rotate: -90 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: 90 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Moon className="h-4 w-4" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="sun"
+                      initial={{ scale: 0, rotate: 90 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: -90 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Sun className="h-4 w-4" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Button>
+            </motion.div>
+
+            {/* Mobile Menu Toggle */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="lg:hidden"
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggle}
+                className="h-9 w-9 p-0"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {isOpen ? (
+                    <motion.div
+                      key="close"
+                      initial={{ scale: 0, rotate: -90 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: 90 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <X className="h-4 w-4" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="menu"
+                      initial={{ scale: 0, rotate: 90 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: -90 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Menu className="h-4 w-4" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Button>
+            </motion.div>
+          </div>
         </div>
-      </nav>
-      <div className="h-20" />
+      </motion.nav>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+              onClick={toggle}
+            />
+            
+            {/* Mobile Menu */}
+            <motion.div
+              initial={{ opacity: 0, x: '100%' }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: '100%' }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-background/95 backdrop-blur-xl border-l border-border z-50 lg:hidden"
+            >
+              <div className="flex flex-col h-full">
+                {/* Mobile Header */}
+                <div className="flex items-center justify-between p-6 border-b border-border">
+                  <div className="flex items-center space-x-3">
+                    <div className="relative w-8 h-8">
+                      <Image
+                        src="/logo.png"
+                        alt="PokeArkus Logo"
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                    <span className="font-bold text-lg">PokeArkus</span>
+                  </div>
+                </div>
+
+                {/* Mobile Menu Items */}
+                <div className="flex-1 overflow-y-auto">
+                  <div className="p-6 space-y-1">
+                    {menuItems.map((item, index) => (
+                      <motion.div
+                        key={item.href}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "block px-4 py-3 rounded-lg transition-all duration-200",
+                            "hover:bg-accent hover:text-accent-foreground",
+                            isActive(item.href) && "bg-primary/10 text-primary border-l-4 border-primary"
+                          )}
+                        >
+                          <div className="font-medium">{item.label}</div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {item.description}
+                          </div>
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mobile Footer */}
+                <div className="p-6 border-t border-border">
+                  <div className="text-center text-sm text-muted-foreground">
+                    © 2024 PokeArkus Team
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Spacer */}
+      <div className="h-24" />
     </>
   );
 }

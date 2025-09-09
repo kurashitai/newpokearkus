@@ -2,15 +2,50 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { pokemonLocations } from './data';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, ZoomIn, ZoomOut, RotateCcw, MapPin, List, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+} from '@/components/ui/dropdown-menu';
+import { pokemonLocations } from './pokemon_data';
 import { PokemonLocation } from './types';
+import { pokemonTypes } from './pokemon_types';
+import { typeIcons } from './type_icons';
 import PinpointComponent from './components/PinpointComponent';
 import HeatmapComponent from './components/HeatmapComponent';
-import { toast, Toaster } from 'react-hot-toast';
+
+// Corrige nomes dos Pokémon para exibição
+function getFormattedPokemonName(name: string): string {
+  switch (name) {
+    case 'Farfetchd':
+      return "Farfetch'd";
+    case 'Nidoran Male':
+      return 'Nidoran♂';
+    case 'Nidoran Female':
+      return 'Nidoran♀';
+    default:
+      return name;
+  }
+}
 
 // Dimensões originais do mapa
 const MAP_WIDTH = 1680;
 const MAP_HEIGHT = 3815;
+
+type ViewMode = 'pinpoint' | 'heatmap';
 
 // Utility function para debounce
 function debounce<T extends (...args: any[]) => any>(
@@ -39,112 +74,94 @@ function throttle<T extends (...args: any[]) => any>(
   };
 }
 
-// Estilos globais para animações
-const globalStyles = `
-  @keyframes bounce {
-    0% {
-      transform: translateY(0);
-    }
-    100% {
-      transform: translateY(-5px);
-    }
-  }
-`;
-
-// Função para obter o tipo de terreno
-function getTerrainType(z: number): string {
-  if (z > 7) return 'Subsolo';
-  if (z < 7) return 'Montanha';
-  return 'Planície';
-}
-
-// Filtra coordenadas inválidas
-function isValidLocation(x: number, y: number): boolean {
-  return x >= 0 && x <= MAP_WIDTH && y >= 0 && y <= MAP_HEIGHT;
-}
-
-// Corrige nomes dos Pokémon
-function getFormattedPokemonName(name: string): string {
-  switch (name) {
-    case 'Farfetchd':
-      return "Farfetch'd";
-    case 'Nidoran Male':
-      return 'Nidoran♂';
-    case 'Nidoran Female':
-      return 'Nidoran♀';
-    default:
-      return name;
-  }
-}
-
-// Corrige números da Pokédex
-function getCorrectDexNumber(name: string, currentNumber: number): number {
-  switch (name) {
-    case 'Nidoran Male':
-      return 32;
-    case 'Nidoran Female':
-      return 29;
-    case 'Farfetchd':
-      return 83;
-    default:
-      return currentNumber;
-  }
-}
-
-// Filtra os Pokémon e suas localizações e ordena por número da Pokédex
-const validPokemonLocations = pokemonLocations
-  .map(pokemon => ({
-    ...pokemon,
-    name: getFormattedPokemonName(pokemon.name),
-    dexNumber: getCorrectDexNumber(pokemon.name, pokemon.dexNumber),
-    locations: pokemon.locations.filter(loc => isValidLocation(loc.x, loc.y))
-  }))
-  .filter(pokemon => pokemon.locations.length > 0)
-  .sort((a, b) => a.dexNumber - b.dexNumber);
+// Add this function to remove a specific filter
+// These functions are moved inside the component to have access to state setters
 
 export default function MapaInterativo() {
-  const [viewMode, setViewMode] = useState<'pinpoint' | 'heatmap'>('pinpoint');
+  const [viewMode, setViewMode] = useState<ViewMode>('pinpoint');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedPokemon, setSelectedPokemon] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, panX: 0, panY: 0 });
+  const [regionFilters, setRegionFilters] = useState<string[]>([]);
+  const [typeFilters, setTypeFilters] = useState<string[]>([]);
   const mapRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
-  const [isTyping, setIsTyping] = useState(false);
-
-  // Debounced search para melhor performance
-  const debouncedSearch = useCallback(
-    debounce((term: string) => {
-      setSearchTerm(term);
-      setIsTyping(false);
-    }, 300),
-    []
-  );
-
-  // Estado local para o input de busca
-  const [searchInput, setSearchInput] = useState('');
-
-  // Atualiza o termo de busca com debounce
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchInput(value);
-    setIsTyping(true);
-    debouncedSearch(value);
-  }, [debouncedSearch]);
-
-  // Estado para armazenar a localização média do Pokémon selecionado
-  const [averageLocation, setAverageLocation] = useState<{ x: number, y: number, z: number } | null>(null);
-
-  // Pokémon selecionado
-  const selectedPokemonData = selectedPokemon
-    ? validPokemonLocations.find(p => p.name === selectedPokemon)
-    : null;
-
-  // Referência para o Pokémon selecionado anteriormente
   const selectedPokemonRef = useRef<string | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+
+  // Add this function to remove a specific filter
+  const removeRegionFilter = (region: string) => {
+    setRegionFilters(prev => prev.filter(r => r !== region));
+  };
+
+  const removeTypeFilter = (type: string) => {
+    setTypeFilters(prev => prev.filter(t => t !== type));
+  };
+
+  // Filter Pokemon based on search query and sort by Pokedex number
+  const filteredPokemon = useMemo(() => {
+    let filtered = pokemonLocations;
+    
+    // Apply search filter
+    if (searchQuery) {
+      filtered = pokemonLocations.filter(pokemon =>
+        pokemon.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    // Apply region filters (based on dex number ranges)
+    // If no region filters are selected, show all regions
+    // If region filters are selected, show Pokemon from any of the selected regions
+    if (regionFilters.length > 0) {
+      filtered = filtered.filter(pokemon => {
+        return regionFilters.some(region => {
+          switch (region) {
+            case 'kanto':
+              return pokemon.dexNumber >= 1 && pokemon.dexNumber <= 151;
+            case 'johto':
+              return pokemon.dexNumber >= 152 && pokemon.dexNumber <= 251;
+            case 'hoenn':
+              return pokemon.dexNumber >= 252 && pokemon.dexNumber <= 386;
+            default:
+              return false;
+          }
+        });
+      });
+    }
+    
+    // Apply type filters (based on actual Pokemon types)
+    // If no type filters are selected, show all types
+    // If type filters are selected, show Pokemon with any of the selected types
+    if (typeFilters.length > 0) {
+      filtered = filtered.filter(pokemon => {
+        const pokemonTypeData = pokemonTypes.find(type => type.dexNumber === pokemon.dexNumber);
+        if (pokemonTypeData) {
+          return typeFilters.some(filterType => pokemonTypeData.types.includes(filterType));
+        }
+        return false;
+      });
+    }
+    
+    // Sort by Pokedex number (ascending order)
+    return filtered.sort((a, b) => {
+      // Handle pokemon without dex numbers (put them at the end)
+      if (a.dexNumber === -1 && b.dexNumber === -1) return 0;
+      if (a.dexNumber === -1) return 1;
+      if (b.dexNumber === -1) return -1;
+      return a.dexNumber - b.dexNumber;
+    });
+  }, [searchQuery, regionFilters, typeFilters]);
+
+  // Get selected Pokemon data
+  const selectedPokemonData = useMemo(() => {
+    if (!selectedPokemon) return null;
+    return filteredPokemon.find(pokemon => pokemon.id === selectedPokemon);
+  }, [selectedPokemon, filteredPokemon]);
 
   // Atualiza a escala quando o componente montar ou o tamanho da janela mudar
   useEffect(() => {
@@ -160,144 +177,66 @@ export default function MapaInterativo() {
     return () => window.removeEventListener('resize', updateScale);
   }, []);
 
-  // Previne rolagem da página quando o mouse está sobre o mapa
-  useEffect(() => {
-    const preventScroll = (e: WheelEvent) => {
-      if (containerRef.current?.contains(e.target as Node)) {
-        e.preventDefault();
-      }
-    };
-
-    window.addEventListener('wheel', preventScroll, { passive: false });
-    return () => window.removeEventListener('wheel', preventScroll);
-  }, []);
-
-  // Mouse drag handlers
-  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault(); // Previne comportamento padrão
-    setIsDragging(true);
-    setIsInteracting(true); // Marca interação durante drag
-    
-    // Obtém a posição inicial do mouse ou toque
-    let clientX, clientY;
-    if ('touches' in e) {
-      // É um evento de toque
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      // É um evento de mouse
-      clientX = (e as React.MouseEvent).clientX;
-      clientY = (e as React.MouseEvent).clientY;
+  // Zoom controls with centering
+  const handleZoomIn = useCallback(() => {
+    if (!containerRef.current) {
+      setZoomLevel(prev => Math.min(prev * 1.2, 4));
+      return;
     }
     
-    setDragStart({
-      x: clientX,
-      y: clientY,
-      panX: panPosition.x,
-      panY: panPosition.y
-    });
-  };
-
-  // Throttled mouse move para performance
-  const throttledMouseMove = useCallback(
-    throttle((e: React.MouseEvent | React.TouchEvent) => {
-      if (!isDragging) return;
-      
-      // Obtém a posição atual do mouse ou toque
-      let clientX, clientY;
-      if ('touches' in e) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-      } else {
-        clientX = (e as React.MouseEvent).clientX;
-        clientY = (e as React.MouseEvent).clientY;
-      }
-      
-      // Calcula o deslocamento usando valores de estado atuais
-      const dx = (clientX - dragStart.x) / (scale * zoomLevel);
-      const dy = (clientY - dragStart.y) / (scale * zoomLevel);
-      
-      // Calcula nova posição
-      const newX = dragStart.panX + dx;
-      const newY = dragStart.panY + dy;
-      
-      // Atualiza estado diretamente
-      setPanPosition({ x: newX, y: newY });
-    }, 16), // ~60fps
-    [isDragging, dragStart, scale, zoomLevel]
-  );
-
-  const handleMouseMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    throttledMouseMove(e);
-  }, [throttledMouseMove]);
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
+    const container = containerRef.current;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
     
-    // Para a interação após um pequeno delay para permitir acabamento suave
-    if (interactionTimeoutRef.current) {
-      clearTimeout(interactionTimeoutRef.current);
+    // Calculate center point in map coordinates
+    const centerX = (containerWidth / 2) / (scale * zoomLevel) - panPosition.x;
+    const centerY = (containerHeight / 2) / (scale * zoomLevel) - panPosition.y;
+    
+    // Apply zoom
+    const newZoomLevel = Math.min(zoomLevel * 1.2, 4);
+    setZoomLevel(newZoomLevel);
+    
+    // Adjust pan to keep center point in view
+    const newPanX = (containerWidth / 2) / (scale * newZoomLevel) - centerX;
+    const newPanY = (containerHeight / 2) / (scale * newZoomLevel) - centerY;
+    
+    setPanPosition({ x: newPanX, y: newPanY });
+  }, [zoomLevel, panPosition, scale]);
+
+  const handleZoomOut = useCallback(() => {
+    if (!containerRef.current) {
+      setZoomLevel(prev => Math.max(prev / 1.2, 0.3));
+      return;
     }
-    interactionTimeoutRef.current = setTimeout(() => {
-      setIsInteracting(false);
-    }, 1000); // Timeout maior e consistente
-  };
+    
+    const container = containerRef.current;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+    
+    // Calculate center point in map coordinates
+    const centerX = (containerWidth / 2) / (scale * zoomLevel) - panPosition.x;
+    const centerY = (containerHeight / 2) / (scale * zoomLevel) - panPosition.y;
+    
+    // Apply zoom
+    const newZoomLevel = Math.max(zoomLevel / 1.2, 0.3);
+    setZoomLevel(newZoomLevel);
+    
+    // Adjust pan to keep center point in view
+    const newPanX = (containerWidth / 2) / (scale * newZoomLevel) - centerX;
+    const newPanY = (containerHeight / 2) / (scale * newZoomLevel) - centerY;
+    
+    setPanPosition({ x: newPanX, y: newPanY });
+  }, [zoomLevel, panPosition, scale]);
 
-  // Adiciona eventos de toque para dispositivos móveis
-  useEffect(() => {
-    const mapElement = mapRef.current;
-    if (!mapElement) return;
-    
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isDragging) return;
-      
-      // Converter para o formato esperado pelo handleMouseMove
-      const syntheticEvent = {
-        touches: e.touches,
-        preventDefault: () => e.preventDefault()
-      } as unknown as React.TouchEvent;
-      
-      handleMouseMove(syntheticEvent);
-    };
-    
-    const handleTouchEnd = () => {
-      setIsDragging(false);
-      // Para a interação após um pequeno delay
-      if (interactionTimeoutRef.current) {
-        clearTimeout(interactionTimeoutRef.current);
-      }
-      interactionTimeoutRef.current = setTimeout(() => {
-        setIsInteracting(false);
-      }, 1000); // Timeout consistente com outros eventos
-    };
-    
-    mapElement.addEventListener('touchmove', handleTouchMove, { passive: false });
-    mapElement.addEventListener('touchend', handleTouchEnd);
-    
-    return () => {
-      mapElement.removeEventListener('touchmove', handleTouchMove);
-      mapElement.removeEventListener('touchend', handleTouchEnd);
-      // Cleanup timeout
-      if (interactionTimeoutRef.current) {
-        clearTimeout(interactionTimeoutRef.current);
-      }
-    };
-  }, [isDragging, dragStart, handleMouseMove]);
-
-  // Previne comportamento padrão em dispositivos touch
-  useEffect(() => {
-    const mapElement = mapRef.current;
-    if (!mapElement) return;
-    
-    mapElement.style.touchAction = 'none';
+  const handleReset = useCallback(() => {
+    setZoomLevel(1);
+    setPanPosition({ x: 0, y: 0 });
+    setSelectedPokemon(null);
   }, []);
 
-  // Ref para controlar a animação
-  const animationFrameRef = useRef<number | null>(null);
-
-  // Função para centralizar no Pokémon com animação suave
-  const centerOnPokemon = (x: number, y: number) => {
-    if (!containerRef.current) return;
+  // Função para centralizar no Pokémon selecionado com animação suave
+  const centerOnPokemon = useCallback((pokemon: PokemonLocation) => {
+    if (!containerRef.current || !pokemon.averageLocation) return;
     
     // Cancela qualquer animação anterior
     if (animationFrameRef.current) {
@@ -309,20 +248,20 @@ export default function MapaInterativo() {
     const startX = panPosition.x;
     const startY = panPosition.y;
     const startZoom = zoomLevel;
-    const targetZoom = 1.6;
     
-    // Abordagem simplificada para centralizar
-    // Calcula a posição para que o ponto (x,y) fique no centro da tela
+    // Calcula a média das localizações
+    const avgLoc = pokemon.averageLocation;
+    
+    // Dimensões do container
     const containerWidth = containerRef.current.clientWidth;
     const containerHeight = containerRef.current.clientHeight;
     
-    // O ponto central da tela em coordenadas do mapa
-    const screenCenterX = containerWidth / 2;
-    const screenCenterY = containerHeight / 2;
+    // Calcula a posição para centralizar o ponto médio
+    const targetX = (containerWidth / 2) / (scale * startZoom) - avgLoc.x;
+    const targetY = (containerHeight / 2) / (scale * startZoom) - avgLoc.y;
     
-    // A posição do pan para que o ponto (x,y) fique no centro
-    const targetX = screenCenterX / (scale * targetZoom) - x;
-    const targetY = screenCenterY / (scale * targetZoom) - y;
+    // Define um zoom level apropriado para visualização
+    const targetZoom = 1.6;
     
     // Duração da animação em ms
     const duration = 500;
@@ -356,258 +295,135 @@ export default function MapaInterativo() {
     
     // Inicia a animação
     animationFrameRef.current = requestAnimationFrame(animate);
-  };
+  }, [panPosition, zoomLevel, scale]);
 
   // Centraliza o mapa quando o Pokémon selecionado muda
   useEffect(() => {
-    if (!selectedPokemon || !selectedPokemonData || !containerRef.current || isTyping) return;
-    
-    // Calcula a média das localizações
-    const avgLoc = selectedPokemonData.locations.reduce(
-      (acc, loc) => ({
-        x: acc.x + loc.x / selectedPokemonData.locations.length,
-        y: acc.y + loc.y / selectedPokemonData.locations.length,
-        z: acc.z + loc.z / selectedPokemonData.locations.length
-      }),
-      { x: 0, y: 0, z: 0 }
-    );
-    
-    // Atualiza o estado apenas se for diferente
-    if (!averageLocation || 
-        averageLocation.x !== avgLoc.x || 
-        averageLocation.y !== avgLoc.y || 
-        averageLocation.z !== avgLoc.z) {
-      setAverageLocation(avgLoc);
-    }
-    
-    // Aplica a centralização apenas se o Pokémon selecionado mudou
-    if (selectedPokemonRef.current !== selectedPokemon) {
+    if (selectedPokemonData && selectedPokemonRef.current !== selectedPokemon) {
       selectedPokemonRef.current = selectedPokemon;
-      centerOnPokemon(avgLoc.x, avgLoc.y);
+      centerOnPokemon(selectedPokemonData);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPokemon, selectedPokemonData, scale, isTyping]);
+  }, [selectedPokemonData, selectedPokemon, centerOnPokemon]);
 
-  // Marca quando o mapa carregar
-  useEffect(() => {
-    if (mapRef.current?.querySelector('img')?.complete) {
-      setIsLoading(false);
-    } else {
-      const img = mapRef.current?.querySelector('img');
-      if (img) {
-        const onLoad = () => setIsLoading(false);
-        img.addEventListener('load', onLoad);
-        return () => img.removeEventListener('load', onLoad);
-      }
-    }
-  }, []);
-
-  // Estado para controlar quando aplicar limites
-  const [isInteracting, setIsInteracting] = useState(false);
-  const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Aplica limites de pan muito suaves para evitar bouncing
-  const debouncedPanLimits = useCallback(
-    debounce(() => {
-      if (!containerRef.current || isInteracting) return;
-      
-      const containerWidth = containerRef.current.clientWidth;
-      const containerHeight = containerRef.current.clientHeight;
-      const mapWidth = MAP_WIDTH * scale * zoomLevel;
-      const mapHeight = MAP_HEIGHT * scale * zoomLevel;
-      
-      // Limites muito mais permissivos - quase sem restrições
-      // Permite que o mapa saia completamente da tela em qualquer direção
-      const generousPadding = Math.max(mapWidth * 0.8, mapHeight * 0.8); // Padding muito generoso
-      const minX = -mapWidth - generousPadding;
-      const maxX = containerWidth + generousPadding;
-      const minY = -mapHeight - generousPadding;
-      const maxY = containerHeight + generousPadding;
-      
-      // Só aplica correção se estiver MUITO longe dos limites (emergência)
-      const emergencyThreshold = 50; // Threshold muito alto
-      let needsCorrection = false;
-      let newX = panPosition.x;
-      let newY = panPosition.y;
-      
-      // Só corrige se estiver extremamente fora dos limites
-      if (panPosition.x < minX - emergencyThreshold) {
-        newX = minX;
-        needsCorrection = true;
-      } else if (panPosition.x > maxX + emergencyThreshold) {
-        newX = maxX;
-        needsCorrection = true;
-      }
-      
-      if (panPosition.y < minY - emergencyThreshold) {
-        newY = minY;
-        needsCorrection = true;
-      } else if (panPosition.y > maxY + emergencyThreshold) {
-        newY = maxY;
-        needsCorrection = true;
-      }
-      
-      // Só aplica correção em casos extremos
-      if (needsCorrection) {
-        setPanPosition({ x: newX, y: newY });
-      }
-    }, 500), // Debounce ainda maior para ser menos agressivo
-    [panPosition, scale, zoomLevel, isInteracting]
-  );
-  
-  // Só aplica limites quando não está interagindo
-  useEffect(() => {
-    if (!isInteracting) {
-      debouncedPanLimits();
-    }
-  }, [debouncedPanLimits, isInteracting]);
-
-  // Função para obter a localização mais representativa de um Pokémon
-  const getBestLocation = (pokemon: PokemonLocation) => {
-    if (pokemon.locations.length === 0) return null;
-    if (pokemon.locations.length === 1) return pokemon.locations[0];
+  // Mouse drag handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault(); // Previne comportamento padrão
+    setIsDragging(true);
     
-    // Encontra clusters de localizações próximas
-    const clusters: { center: {x: number, y: number, z: number}, points: number }[] = [];
-    const threshold = 50; // Distância para considerar parte do mesmo cluster
+    // Obtém a posição inicial do mouse
+    const clientX = e.clientX;
+    const clientY = e.clientY;
     
-    // Para cada localização, verifica se está próxima de um cluster existente
-    pokemon.locations.forEach(loc => {
-      let foundCluster = false;
-      
-      for (const cluster of clusters) {
-        const distance = Math.sqrt(
-          Math.pow(loc.x - cluster.center.x, 2) + 
-          Math.pow(loc.y - cluster.center.y, 2)
-        );
-        
-        if (distance < threshold) {
-          // Atualiza o centro do cluster (média ponderada)
-          cluster.center.x = (cluster.center.x * cluster.points + loc.x) / (cluster.points + 1);
-          cluster.center.y = (cluster.center.y * cluster.points + loc.y) / (cluster.points + 1);
-          cluster.center.z = (cluster.center.z * cluster.points + loc.z) / (cluster.points + 1);
-          cluster.points++;
-          foundCluster = true;
-          break;
-        }
-      }
-      
-      if (!foundCluster) {
-        // Cria um novo cluster
-        clusters.push({
-          center: { ...loc },
-          points: 1
-        });
-      }
+    setDragStart({
+      x: clientX,
+      y: clientY,
+      panX: panPosition.x,
+      panY: panPosition.y
     });
-    
-    // Encontra o cluster com mais pontos
-    const largestCluster = clusters.reduce((max, cluster) => 
-      cluster.points > max.points ? cluster : max, 
-      clusters[0]
-    );
-    
-    // Encontra a localização mais próxima do centro do maior cluster
-    let closestLocation = pokemon.locations[0];
-    let minDistance = Number.MAX_VALUE;
-    
-    pokemon.locations.forEach(loc => {
-      const distance = Math.sqrt(
-        Math.pow(loc.x - largestCluster.center.x, 2) + 
-        Math.pow(loc.y - largestCluster.center.y, 2) + 
-        Math.pow(loc.z - largestCluster.center.z, 2)
-      );
+  }, [panPosition]);
+
+  // Throttled mouse move para performance
+  const throttledMouseMove = useCallback(
+    throttle((e: React.MouseEvent) => {
+      if (!isDragging) return;
       
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestLocation = loc;
-      }
-    });
-    
-    return closestLocation;
-  };
-
-  // Função para copiar localização média de um Pokémon
-  const copyPokemonLocation = (pokemon: PokemonLocation) => {
-    if (pokemon.locations.length === 0) return;
-    
-    // Usa a função getBestLocation para encontrar a melhor localização
-    const bestLoc = getBestLocation(pokemon);
-    if (!bestLoc) return;
-    
-    const text = `(${Math.round(bestLoc.x)}, ${Math.round(bestLoc.y)}, ${Math.round(bestLoc.z)})`;
-    navigator.clipboard.writeText(text);
-    toast.success(`Copiado: ${text}`);
-  };
-
-  const copyAverageLocation = () => {
-    if (averageLocation) {
-      const text = `(${Math.round(averageLocation.x)}, ${Math.round(averageLocation.y)}, ${Math.round(averageLocation.z)})`;
-      navigator.clipboard.writeText(text);
-    }
-  };
-
-  // Funções de controle de zoom otimizadas
-  const zoomIn = useCallback(() => {
-    setZoomLevel(prev => Math.min(prev * 1.2, 4));
-  }, []);
-  
-  const zoomOut = useCallback(() => {
-    setZoomLevel(prev => Math.max(prev / 1.2, 0.3));
-  }, []);
-  
-  const resetZoom = useCallback(() => {
-    setZoomLevel(1);
-    setPanPosition({ x: 0, y: 0 });
-  }, []);
-
-  // Filtra os Pokémon com base na pesquisa
-  const filteredPokemon = useMemo(() => {
-    if (!searchTerm) return validPokemonLocations;
-    
-    return validPokemonLocations.filter(pokemon => 
-      pokemon.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm]);
-
-  // Virtual scrolling para lista de Pokémon
-  const [listScrollTop, setListScrollTop] = useState(0);
-  const [visibleRange, setVisibleRange] = useState({ start: 0, end: 20 });
-  const listRef = useRef<HTMLDivElement>(null);
-  
-  // Calcula quais itens são visíveis para virtual scrolling
-  const updateVisibleRange = useCallback(
-    throttle((pokemonCount: number) => {
-      if (!listRef.current) return;
+      // Obtém a posição atual do mouse
+      const clientX = e.clientX;
+      const clientY = e.clientY;
       
-      const containerHeight = listRef.current.clientHeight;
-      const itemHeight = 64; // Altura aproximada de cada item
-      const buffer = 5; // Buffer de itens extras
+      // Calcula o deslocamento usando valores de estado atuais
+      const dx = (clientX - dragStart.x) / (scale * zoomLevel);
+      const dy = (clientY - dragStart.y) / (scale * zoomLevel);
       
-      const start = Math.max(0, Math.floor(listScrollTop / itemHeight) - buffer);
-      const end = Math.min(
-        pokemonCount,
-        start + Math.ceil(containerHeight / itemHeight) + buffer * 2
-      );
+      // Calcula nova posição
+      const newX = dragStart.panX + dx;
+      const newY = dragStart.panY + dy;
       
-      setVisibleRange({ start, end });
-    }, 16),
-    [listScrollTop]
+      // Atualiza estado diretamente
+      setPanPosition({ x: newX, y: newY });
+    }, 16), // ~60fps
+    [isDragging, dragStart, scale, zoomLevel]
   );
-  
-  // Atualiza quando filteredPokemon mudar
-  useEffect(() => {
-    updateVisibleRange(filteredPokemon.length);
-  }, [filteredPokemon.length, updateVisibleRange]);
-  
-  // Itens visíveis para renderizar
-  const visiblePokemon = useMemo(() => {
-    return filteredPokemon.slice(visibleRange.start, visibleRange.end);
-  }, [filteredPokemon, visibleRange]);
-  
-  // Altura total para o scroll virtual
-  const totalHeight = filteredPokemon.length * 64;
-  const offsetY = visibleRange.start * 64;
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    throttledMouseMove(e);
+  }, [throttledMouseMove]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      setIsDragging(true);
+      setDragStart({ 
+        x: touch.clientX, 
+        y: touch.clientY, 
+        panX: panPosition.x, 
+        panY: panPosition.y 
+      });
+    }
+  }, [panPosition]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    
+    // Calculate movement similar to mouse
+    const dx = (touch.clientX - dragStart.x) / (scale * zoomLevel);
+    const dy = (touch.clientY - dragStart.y) / (scale * zoomLevel);
+    
+    const newX = dragStart.panX + dx;
+    const newY = dragStart.panY + dy;
+    
+    setPanPosition({ x: newX, y: newY });
+  }, [isDragging, dragStart, scale, zoomLevel]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Mouse wheel zoom handler with cursor-centered zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    
+    if (!containerRef.current) return;
+    
+    // Fator de zoom mais suave
+    const zoomFactor = 0.1;
+    const delta = e.deltaY > 0 ? -zoomFactor : zoomFactor;
+    
+    // Calcula novo nível de zoom com limites
+    const currentZoom = zoomLevel;
+    const newZoomLevel = Math.max(0.3, Math.min(4, currentZoom * (1 + delta)));
+    
+    if (newZoomLevel === currentZoom) return; // Evita cálculos desnecessários
+    
+    // Posição do cursor relativa ao container
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Current transform values
+    const currentScale = scale;
+    const currentPanX = panPosition.x;
+    const currentPanY = panPosition.y;
+    
+    // Calculate the point in map coordinates that's under the cursor
+    // This accounts for the current transform: scale(currentScale * currentZoom) translate(currentPanX, currentPanY)
+    const mapPointX = (mouseX / (currentScale * currentZoom)) - currentPanX;
+    const mapPointY = (mouseY / (currentScale * currentZoom)) - currentPanY;
+    
+    // Calculate new pan position to keep the same map point under the cursor
+    const newPanX = (mouseX / (currentScale * newZoomLevel)) - mapPointX;
+    const newPanY = (mouseY / (currentScale * newZoomLevel)) - mapPointY;
+    
+    // Atualiza ambos estados ao mesmo tempo
+    setZoomLevel(newZoomLevel);
+    setPanPosition({ x: newPanX, y: newPanY });
+  }, [zoomLevel, scale, panPosition]);
 
   // Memoized transform style para evitar recalculos desnecessários com hardware acceleration
   const mapTransform = useMemo(() => {
@@ -624,164 +440,170 @@ export default function MapaInterativo() {
     };
   }, [scale, zoomLevel, panPosition.x, panPosition.y, isDragging]);
 
-  // Opções para o dropdown de Pokémon
-  const pokemonOptions = filteredPokemon.map(p => ({
-    value: p.name,
-    label: (
-      <div className="flex items-center gap-2">
-        <Image 
-          src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.dexNumber}.png`}
-          className="w-6 h-6"
-          alt={p.name}
-          width={24}
-          height={24}
-          unoptimized
-        />
-        <span>#{String(p.dexNumber).padStart(3, '0')} - {getFormattedPokemonName(p.name)}</span>
-      </div>
-    )
-  }));
+  // Aplica limites de pan para evitar que o mapa saia completamente da tela
+  const applyPanLimits = useCallback(() => {
+    if (!containerRef.current) return;
+    
+    const containerWidth = containerRef.current.clientWidth;
+    const containerHeight = containerRef.current.clientHeight;
+    const mapWidth = MAP_WIDTH * scale * zoomLevel;
+    const mapHeight = MAP_HEIGHT * scale * zoomLevel;
+    
+    // Calcula limites respeitando os limites da imagem
+    const minX = Math.min(0, containerWidth - mapWidth);
+    const maxX = Math.max(0, containerWidth - mapWidth);
+    const minY = Math.min(0, containerHeight - mapHeight);
+    const maxY = Math.max(0, containerHeight - mapHeight);
+    
+    // Adiciona um pequeno padding para melhor experiência do usuário
+    const padding = 50;
+    const adjustedMinX = minX - padding;
+    const adjustedMaxX = maxX + padding;
+    const adjustedMinY = minY - padding;
+    const adjustedMaxY = maxY + padding;
+    
+    // Aplica correções se necessário
+    let newX = panPosition.x;
+    let newY = panPosition.y;
+    let needsUpdate = false;
+    
+    if (panPosition.x < adjustedMinX) {
+      newX = adjustedMinX;
+      needsUpdate = true;
+    } else if (panPosition.x > adjustedMaxX) {
+      newX = adjustedMaxX;
+      needsUpdate = true;
+    }
+    
+    if (panPosition.y < adjustedMinY) {
+      newY = adjustedMinY;
+      needsUpdate = true;
+    } else if (panPosition.y > adjustedMaxY) {
+      newY = adjustedMaxY;
+      needsUpdate = true;
+    }
+    
+    if (needsUpdate) {
+      setPanPosition({ x: newX, y: newY });
+    }
+  }, [panPosition, scale, zoomLevel]);
+
+  // Aplica limites quando o pan ou zoom muda
+  useEffect(() => {
+    // Small delay to avoid conflicts during user interaction
+    const timeoutId = setTimeout(() => {
+      applyPanLimits();
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [applyPanLimits]);
+
+  // Previne rolagem da página quando o mouse está sobre o mapa
+  useEffect(() => {
+    const preventScroll = (e: WheelEvent) => {
+      if (containerRef.current?.contains(e.target as Node)) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('wheel', preventScroll, { passive: false });
+    return () => window.removeEventListener('wheel', preventScroll);
+  }, []);
+
+  // Estado para controlar a altura do mapa
+  const [mapHeight, setMapHeight] = useState('60vh');
+
+  // Ajusta a altura do mapa com base no tamanho da tela
+  useEffect(() => {
+    function updateMapHeight() {
+      const screenHeight = window.innerHeight;
+      
+      // Para telas muito pequenas
+      if (screenHeight < 600) {
+        setMapHeight('400px');
+      } 
+      // Para telas médias
+      else if (screenHeight < 800) {
+        setMapHeight('50vh');
+      }
+      // Para telas grandes
+      else {
+        setMapHeight('60vh');
+      }
+    }
+
+    updateMapHeight();
+    window.addEventListener('resize', updateMapHeight);
+    return () => window.removeEventListener('resize', updateMapHeight);
+  }, []);
+
+  // Function to clear all filters
+  const clearFilters = () => {
+    setRegionFilters([]);
+    setTypeFilters([]);
+    setSearchQuery('');
+  };
+
+  // Scroll to top when filters change
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      // Scroll to top of the Pokemon list
+      scrollAreaRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [regionFilters, typeFilters, searchQuery]);
 
   return (
-    <div className="min-h-screen text-gray-200 mt-10">
-      <Toaster />
-      <style jsx global>{globalStyles}</style>
-      <div className="max-w-[90rem] mx-auto px-4 py-4">
-        <div className="flex flex-col md:flex-row gap-6 justify-center">
-          {/* Conteúdo Principal - Mapa */}
-          <div className="w-full md:max-w-[884px]">
-            <div className="bg-[#3900d1] rounded-lg shadow-lg overflow-hidden">
-              <div className="relative h-[350px] sm:h-[700px] md:h-[760px]">
-                <div 
-                  className="absolute inset-0 overflow-hidden cursor-grab active:cursor-grabbing" 
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-purple-500/5">
+      {/* Header */}
+      <div className="relative z-10 pt-24 pb-6">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold mb-4">Mapa Interativo</h1>
+            <p className="text-xl text-muted-foreground">
+              Explore Pokemon locations across the game world
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 pb-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-4 gap-6 min-h-[calc(100vh-300px)]">
+          {/* Map Area - Full width on mobile, 3/4 on desktop */}
+          <div className="lg:col-span-3 order-1">
+            <Card className="overflow-hidden" style={{ height: mapHeight }}>
+              <CardContent className="p-0 h-full">
+                <div
                   ref={containerRef}
+                  className="relative h-full overflow-hidden cursor-grab active:cursor-grabbing bg-gradient-to-br from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950"
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}
-                  onWheel={(e) => {
-                    e.preventDefault();
-                    
-                    if (!containerRef.current) return;
-                    
-                    // Marca que está interagindo para evitar conflito com pan limits
-                    setIsInteracting(true);
-                    if (interactionTimeoutRef.current) {
-                      clearTimeout(interactionTimeoutRef.current);
-                    }
-                    interactionTimeoutRef.current = setTimeout(() => {
-                      setIsInteracting(false);
-                    }, 1000); // Timeout ainda maior para evitar bouncing
-                    
-                    // Fator de zoom mais suave
-                    const zoomFactor = 0.1;
-                    const delta = e.deltaY > 0 ? -zoomFactor : zoomFactor;
-                    
-                    // Calcula novo nível de zoom com limites
-                    const currentZoom = zoomLevel;
-                    const newZoomLevel = Math.max(0.3, Math.min(4, currentZoom * (1 + delta)));
-                    
-                    if (newZoomLevel === currentZoom) return; // Evita cálculos desnecessários
-                    
-                    // Posição do cursor relativa ao container
-                    const rect = containerRef.current.getBoundingClientRect();
-                    const mouseX = e.clientX - rect.left;
-                    const mouseY = e.clientY - rect.top;
-                    
-                    // Current transform values
-                    const currentScale = scale;
-                    const currentPanX = panPosition.x;
-                    const currentPanY = panPosition.y;
-                    
-                    // Calculate the point in map coordinates that's under the cursor
-                    // This accounts for the current transform: scale(currentScale * currentZoom) translate(currentPanX, currentPanY)
-                    const mapPointX = (mouseX / (currentScale * currentZoom)) - currentPanX;
-                    const mapPointY = (mouseY / (currentScale * currentZoom)) - currentPanY;
-                    
-                    // Calculate new pan position to keep the same map point under the cursor
-                    const newPanX = (mouseX / (currentScale * newZoomLevel)) - mapPointX;
-                    const newPanY = (mouseY / (currentScale * newZoomLevel)) - mapPointY;
-                    
-                    // Atualiza ambos estados ao mesmo tempo
-                    setZoomLevel(newZoomLevel);
-                    setPanPosition({ x: newPanX, y: newPanY });
-                  }}
-                  style={{ touchAction: 'none' }} // Previne comportamento padrão em dispositivos touch
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onWheel={handleWheel}
                 >
-                  {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mb-4"></div>
-                        <p>Carregando mapa...</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Controles de Zoom - Posicionamento absoluto dentro do container */}
-                  <div className="absolute top-4 right-4 z-10 bg-[#25262b]/90 rounded-lg shadow-lg">
-                    <button 
-                      onClick={zoomIn}
-                      className="p-2 hover:bg-[#2c2d32] text-white block w-full border-b border-[#373a40]"
-                      title="Aumentar Zoom"
-                    >
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                    </button>
-                    <button 
-                      onClick={zoomOut}
-                      className="p-2 hover:bg-[#2c2d32] text-white block w-full border-b border-[#373a40]"
-                      title="Diminuir Zoom"
-                    >
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                      </svg>
-                    </button>
-                    <button 
-                      onClick={resetZoom}
-                      className="p-2 hover:bg-[#2c2d32] text-white block w-full"
-                      title="Resetar Zoom"
-                    >
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4M4 16l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
-                      </svg>
-                    </button>
-                  </div>
-                  
-                  {/* Interruptor para alternar entre Pin e Heatmap */}
-                  <div className="absolute top-4 left-4 z-10">
-                    <label className="inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="sr-only peer" 
-                        checked={viewMode === 'heatmap'}
-                        onChange={() => setViewMode(mode => mode === 'pinpoint' ? 'heatmap' : 'pinpoint')}
-                      />
-                      <div className="relative w-11 h-6 bg-[#25262b] rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      <span className="ms-3 text-sm font-medium text-white">
-                        {viewMode === 'pinpoint' ? 'Pin' : 'Heatmap'}
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* Mapa com Pins */}
-                  <div 
+                  {/* Map Container */}
+                  <div
                     ref={mapRef}
                     className="relative"
                     style={mapTransform}
-                    onTouchStart={handleMouseDown}
                   >
+                    {/* Background Map */}
                     <Image
                       src="/map/Kanto_7.png"
-                      alt="Mapa de Kanto"
+                      alt="Pokemon World Map"
                       width={MAP_WIDTH}
                       height={MAP_HEIGHT}
                       className="block"
+                      priority
                       unoptimized
                     />
                     
-                    {/* Pins diretamente na imagem */}
-                    {viewMode === 'pinpoint' && selectedPokemon && selectedPokemonData && (
+                    {/* Overlay Components */}
+                    {viewMode === 'pinpoint' && selectedPokemonData && (
                       <PinpointComponent
                         data={[selectedPokemonData]}
                         scale={scale}
@@ -791,162 +613,735 @@ export default function MapaInterativo() {
                           width: containerRef.current?.clientWidth || 800,
                           height: containerRef.current?.clientHeight || 600
                         }}
-                        onPinClick={(loc) => {
-                          const text = `(${Math.round(loc.x)}, ${Math.round(loc.y)}, ${Math.round(loc.z)})`;
-                          navigator.clipboard.writeText(text);
-                          toast.success(`Copiado: ${text}`);
+                        onPinClick={(location) => {
+                          console.log('Pin clicked:', location);
                         }}
                       />
                     )}
                     
-                    {viewMode === 'heatmap' && selectedPokemon && selectedPokemonData && (
-                      <>
-                        {/* Apenas heatmap menor com viewport culling */}
-                        {selectedPokemonData.locations
-                          .filter(location => {
-                            // Viewport culling para heatmap - CORRIGIDO para funcionar com transform: scale() translate()
-                            const totalScale = scale * zoomLevel;
-                            const buffer = 500; // Buffer muito maior para garantir que pins não desapareçam
-                            
-                            // Converte coordenadas da tela para coordenadas do mapa
-                            const bounds = {
-                              left: (0 / totalScale) - panPosition.x - buffer,
-                              top: (0 / totalScale) - panPosition.y - buffer,
-                              right: ((containerRef.current?.clientWidth || 800) / totalScale) - panPosition.x + buffer,
-                              bottom: ((containerRef.current?.clientHeight || 600) / totalScale) - panPosition.y + buffer,
-                            };
-                            return location.x >= bounds.left && location.x <= bounds.right &&
-                                   location.y >= bounds.top && location.y <= bounds.bottom;
-                          })
-                          .map((location, index) => {
-                            // Determina o tamanho da mancha baseado no tamanho da tela
-                            const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-                            const size = isMobile ? 4 : 12;
-                            const offset = isMobile ? 2 : 6;
-                            
-                            // Usa os valores do memoized transform para melhor performance
-                            const inverseScale = 1 / (scale * zoomLevel);
-                            
-                            return (
-                              <div
-                                key={`heatmap-${index}`}
-                                className="absolute bg-red-500/70 rounded-full blur-md"
-                                style={{
-                                  left: location.x,
-                                  top: location.y,
-                                  width: `${size}px`,
-                                  height: `${size}px`,
-                                  marginLeft: `-${offset}px`,
-                                  marginTop: `-${offset}px`,
-                                  transform: `scale(${inverseScale})`,
-                                  transformOrigin: 'center',
-                                  willChange: 'transform',
-                                }}
-                              />
-                            );
-                          })}
-                      </>
+                    {viewMode === 'heatmap' && selectedPokemonData && (
+                      <HeatmapComponent
+                        data={[selectedPokemonData]}
+                      />
                     )}
                   </div>
+
+                  {/* Google Maps-Style Controls - Inside Map */}
+                  <div className="absolute top-4 left-4 flex flex-col gap-1 z-30">
+                    {/* View Mode Toggle */}
+                    <div className="bg-card/90 backdrop-blur-sm rounded-lg border shadow-lg p-1">
+                      <div className="flex flex-col gap-0.5">
+                        <Button
+                          variant={viewMode === 'pinpoint' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setViewMode('pinpoint')}
+                          className="h-7 px-2 text-xs justify-start"
+                        >
+                          <MapPin className="h-3 w-3 mr-1" />
+                          Pinpoints
+                        </Button>
+                        <Button
+                          variant={viewMode === 'heatmap' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setViewMode('heatmap')}
+                          className="h-7 px-2 text-xs justify-start"
+                        >
+                          Heatmap
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Zoom Controls */}
+                    <div className="flex flex-col align gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleZoomIn}
+                        className="h-10 w-10 p-0 bg-card/90 backdrop-blur-sm rounded-lg border shadow-lg"
+                      >
+                        <ZoomIn className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleZoomOut}
+                        className="h-10 w-10 p-0 bg-card/90 backdrop-blur-sm rounded-lg border shadow-lg"
+                      >
+                        <ZoomOut className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleReset}
+                        className="h-10 w-10 p-0 bg-card/90 backdrop-blur-sm rounded-lg border shadow-lg"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Map Info */}
+                  <div className="absolute bottom-4 right-4 bg-card/90 backdrop-blur-sm rounded-lg p-3 border shadow-lg z-30">
+                    <div className="text-sm">
+                      <div>Zoom: {(zoomLevel * 100).toFixed(0)}%</div>
+                      <div>Mode: {viewMode}</div>
+                      {selectedPokemon && (
+                        <div className="text-primary font-medium">
+                          Showing: {filteredPokemon.find(p => p.id === selectedPokemon)?.name}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Barra Lateral - Lista e Controles */}
-          <div className="w-full md:w-[320px] flex flex-col h-[500px] sm:h-[700px] md:h-[760px]">
-            {/* Barra de pesquisa */}
-            <div className="bg-[#25262b] rounded-lg p-4 mb-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Buscar Pokémon..."
-                  value={searchInput}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full bg-[#1e1f23] text-gray-200 px-4 py-2 pr-10 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <div className="absolute right-3 top-2.5 text-gray-400">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Lista de Pokémon */}
-            <div className="bg-[#25262b] rounded-lg p-4 flex-1 overflow-hidden">
-              <h2 className="text-lg font-medium mb-3">Pokémon</h2>
-              <div 
-                ref={listRef}
-                className="h-full overflow-auto pr-2"
-                onScroll={(e) => {
-                  const scrollTop = e.currentTarget.scrollTop;
-                  setListScrollTop(scrollTop);
-                  updateVisibleRange(filteredPokemon.length);
-                }}
-              >
-                <div style={{ height: totalHeight, position: 'relative' }}>
-                  <div 
-                    style={{ 
-                      transform: `translateY(${offsetY}px)`,
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0
-                    }}
-                  >
-                    {visiblePokemon.map((pokemon, index) => {
-                      const actualIndex = visibleRange.start + index;
-                      return (
-                        <div 
-                          key={pokemon.name}
-                          className={`w-full text-left p-2 mb-2 rounded-md ${selectedPokemon === pokemon.name ? 'bg-blue-500/20' : 'bg-[#1e1f23]'}`}
-                          style={{ height: '60px' }} // Altura fixa para virtual scrolling
+          {/* Pokemon List Sidebar - Right on desktop, Below on mobile */}
+          <div className="lg:col-span-1 order-2">
+            <Card className="overflow-hidden" style={{ height: mapHeight }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <List className="h-5 w-5" />
+                  Pokemon List
+                  <Badge variant="secondary" className="ml-auto">
+                    {filteredPokemon.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 flex-grow flex flex-col h-full">
+                {/* Filters and Search Bar */}
+                <div className="px-4 pb-3 space-y-3">
+                  {/* Filter Dropdowns */}
+                  <div className="flex gap-2 items-center">
+                    {/* Region Filter */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="flex-1 justify-between">
+                          {regionFilters.length === 0 ? 'All Regions' : `${regionFilters.length} selected`}
+                          <ChevronDown className="ml-2 h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-[215px] h-[275px] overflow-y-auto grid grid-cols-1 gap-2 p-2" side="bottom" align="start">
+                        <DropdownMenuCheckboxItem 
+                          checked={regionFilters.length === 0}
+                          onCheckedChange={(checked) => {
+                            if (checked) setRegionFilters([]);
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          All Regions
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={regionFilters.includes('kanto')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setRegionFilters(prev => [...prev, 'kanto']);
+                            } else {
+                              setRegionFilters(prev => prev.filter(r => r !== 'kanto'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          Kanto (1-151)
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={regionFilters.includes('johto')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setRegionFilters(prev => [...prev, 'johto']);
+                            } else {
+                              setRegionFilters(prev => prev.filter(r => r !== 'johto'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          Johto (152-251)
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={regionFilters.includes('hoenn')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setRegionFilters(prev => [...prev, 'hoenn']);
+                            } else {
+                              setRegionFilters(prev => prev.filter(r => r !== 'hoenn'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          Hoenn (252-386)
+                        </DropdownMenuCheckboxItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    
+                    {/* Type Filter */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="flex-1 justify-between">
+                          {typeFilters.length === 0 ? 'All Types' : `${typeFilters.length} selected`}
+                          <ChevronDown className="ml-2 h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-[450px] h-[320px] overflow-y-auto grid grid-cols-3 gap-2 p-2" side="bottom" align="end">
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.length === 0}
+                          onCheckedChange={(checked) => {
+                            if (checked) setTypeFilters([]);
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          All Types
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Normal')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Normal']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Normal'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
                         >
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => setSelectedPokemon(pokemon.name)}
-                              className="flex-1 flex items-center gap-2 text-left"
-                            >
-                              <Image 
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Normal.png" 
+                                alt="Normal" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Normal
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Fire')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Fire']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Fire'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Fire.png" 
+                                alt="Fire" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Fire
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Water')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Water']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Water'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Water.png" 
+                                alt="Water" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Water
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Electric')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Electric']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Electric'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Electric.png" 
+                                alt="Electric" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Electric
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Grass')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Grass']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Grass'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Grass.png" 
+                                alt="Grass" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Grass
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Ice')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Ice']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Ice'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Ice.png" 
+                                alt="Ice" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Ice
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Fighting')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Fighting']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Fighting'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Fighting.png" 
+                                alt="Fighting" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Fighting
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Poison')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Poison']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Poison'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Poison.png" 
+                                alt="Poison" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Poison
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Ground')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Ground']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Ground'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Ground.png" 
+                                alt="Ground" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Ground
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Flying')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Flying']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Flying'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Flying.png" 
+                                alt="Flying" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Flying
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Psychic')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Psychic']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Psychic'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Psychic.png" 
+                                alt="Psychic" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Psychic
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Bug')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Bug']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Bug'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Bug.png" 
+                                alt="Bug" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Bug
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Rock')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Rock']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Rock'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Rock.png" 
+                                alt="Rock" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Rock
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Ghost')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Ghost']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Ghost'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Ghost.png" 
+                                alt="Ghost" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Ghost
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Dragon')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Dragon']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Dragon'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Dragon.png" 
+                                alt="Dragon" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Dragon
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Dark')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Dark']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Dark'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Dark.png" 
+                                alt="Dark" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Dark
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Steel')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Steel']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Steel'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Steel.png" 
+                                alt="Steel" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Steel
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem 
+                          checked={typeFilters.includes('Fairy')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setTypeFilters(prev => [...prev, 'Fairy']);
+                            } else {
+                              setTypeFilters(prev => prev.filter(t => t !== 'Fairy'));
+                            }
+                          }}
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                              <img 
+                                src="/elemento/Fairy.png" 
+                                alt="Fairy" 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            Fairy
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    
+                    {/* Clear Filters Button */}
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={clearFilters}
+                      className="h-10 w-10"
+                    >
+                      <span className="sr-only">Clear filters</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </Button>
+                  </div>
+                  
+                  {/* Filter Tags Display */}
+                  {(regionFilters.length > 0 || typeFilters.length > 0) && (
+                    <div className="flex flex-wrap gap-2">
+                      {regionFilters.map(region => (
+                        <Badge 
+                          key={region} 
+                          variant="default" 
+                          className="bg-black text-white pr-1"
+                        >
+                          <span className="mr-1">{region.charAt(0).toUpperCase() + region.slice(1)}</span>
+                          <button 
+                            onClick={() => removeRegionFilter(region)}
+                            className="rounded-full bg-white/20 hover:bg-white/30 w-4 h-4 flex items-center justify-center"
+                          >
+                            <span className="text-xs">×</span>
+                          </button>
+                        </Badge>
+                      ))}
+                      {typeFilters.map(type => (
+                        <Badge 
+                          key={type} 
+                          variant="default" 
+                          className="bg-black text-white pr-1 flex items-center"
+                        >
+                          <div className="w-3 h-3 rounded-full overflow-hidden mr-1">
+                            <img 
+                              src={`/elemento/${type}.png`} 
+                              alt={type} 
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                          <span className="mr-1">{type}</span>
+                          <button 
+                            onClick={() => removeTypeFilter(type)}
+                            className="rounded-full bg-white/20 hover:bg-white/30 w-4 h-4 flex items-center justify-center"
+                          >
+                            <span className="text-xs">×</span>
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Search Bar */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search Pokemon..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                
+                {/* Pokemon List */}
+                <ScrollArea className="flex-grow h-full w-full" ref={scrollAreaRef}>
+                  <div className="px-4 space-y-2 pb-4">
+                    {filteredPokemon.map((pokemon) => {
+                      // Get Pokemon type data
+                      const pokemonTypeData = pokemonTypes.find(type => type.dexNumber === pokemon.dexNumber);
+                      const primaryType = pokemonTypeData?.types[0] || '';
+                      const secondaryType = pokemonTypeData?.types[1] || '';
+                      const primaryTypeIcon = primaryType ? `/elemento/${primaryType}.png` : '';
+                      const secondaryTypeIcon = secondaryType ? `/elemento/${secondaryType}.png` : '';
+                      
+                      return (
+                        <div
+                          key={pokemon.id}
+                          className={`p-3 rounded-lg border transition-all cursor-pointer hover:bg-accent ${
+                            selectedPokemon === pokemon.id ? 'bg-primary/10 border-primary' : 'bg-card'
+                          }`}
+                          onClick={() => setSelectedPokemon(
+                            selectedPokemon === pokemon.id ? null : pokemon.id || null
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="relative w-10 h-10 rounded-full bg-background border-2 border-primary/20 overflow-hidden flex items-center justify-center">
+                              <Image
                                 src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.dexNumber}.png`}
-                                className="w-8 h-8"
                                 alt={pokemon.name}
                                 width={32}
                                 height={32}
                                 unoptimized
-                                loading="lazy"
+                                className="object-contain"
                               />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-baseline gap-2">
-                                  <span className="text-sm text-gray-400">#{String(pokemon.dexNumber).padStart(3, '0')}</span>
-                                  <span className="font-medium truncate">{getFormattedPokemonName(pokemon.name)}</span>
-                                </div>
-                                <p className="text-sm text-gray-500">
-                                  {pokemon.locations.length} {pokemon.locations.length === 1 ? 'localização' : 'localizações'}
-                                </p>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium truncate">{getFormattedPokemonName(pokemon.name)}</div>
+                                {primaryTypeIcon && (
+                                  <div className="w-[17px] h-[17px] rounded-full overflow-hidden ml-2 flex-shrink-0">
+                                    <img 
+                                      src={primaryTypeIcon} 
+                                      alt={primaryType} 
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                      }}
+                                    />
+                                  </div>
+                                )}
                               </div>
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                copyPokemonLocation(pokemon);
-                              }}
-                              className="p-2 hover:bg-[#2c2d32] rounded-lg transition-colors"
-                              title="Copiar localização"
-                            >
-                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                              </svg>
-                            </button>
+                              <div className="flex items-center justify-between">
+                                <div className="text-sm text-muted-foreground">
+                                  #{pokemon.dexNumber} • {pokemon.samples} locations
+                                </div>
+                                {secondaryTypeIcon && (
+                                  <div className="w-[17px] h-[17px] rounded-full overflow-hidden ml-2 flex-shrink-0">
+                                    <img 
+                                      src={secondaryTypeIcon} 
+                                      alt={secondaryType} 
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
                     })}
+                    {/* Add extra padding at the bottom to ensure the last item is fully visible */}
+                    <div className="h-4"></div>
                   </div>
-                </div>
-              </div>
-            </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

@@ -11,6 +11,8 @@ import { DefensiveHeldsTable } from "@/components/defensive-helds-table";
 import { UtilityXHeldsTable } from "@/components/utility-x-helds-table";
 import { UtilityYHeldsTable } from "@/components/utility-y-helds-table";
 
+export const dynamic = 'force-dynamic';
+
 export default function WikiPage() {
   return (
     <div className="container max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">

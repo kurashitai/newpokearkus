@@ -1,97 +1,59 @@
 "use client";
 
-import { Sidebar } from "@/components/sidebar";
-import { ChevronLeft } from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SearchButton } from "@/components/search-button";
+export const dynamic = 'force-dynamic';
 
-export default function WikiPage() {
+export default function WikiSubpage() {
   return (
-    <div className="container max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-      <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-8">
-        <div>
-          <div className="space-y-8">
-            <div className="rounded-lg border bg-card p-4 sm:p-6">
-              <div className="flex justify-between items-center mb-4">
-                <Link href="/wiki">
-                  <button className="btn flex items-center text-foreground/80 hover:text-primary">
-                    <ChevronLeft className="mr-2" />
-                    Retornar
-                  </button>
-                </Link>
-                <div className="block lg:hidden">
-                  <SearchButton />
-                </div>
-              </div>
+    <div className="min-h-screen py-24 bg-gradient-to-br from-background via-primary/5 to-purple-500/5">
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold mb-4">Pokemon Wiki</h1>
+            <p className="text-xl text-muted-foreground">
+              Comprehensive Pokemon guides and documentation
+            </p>
+          </div>
+          
+          <div className="bg-card rounded-lg p-8 border">
+            <h2 className="text-2xl font-semibold mb-6">Guide Content</h2>
+            
+            <div className="prose prose-lg max-w-none">
+              <p className="text-muted-foreground mb-4">
+                This section contains detailed information about Pokemon mechanics, strategies, and guides.
+              </p>
               
-              <div className="space-y-8">
-                {/* Cabeçalho da Página */}
-                <div className="rounded-lg border bg-card p-6">
-                  <h1 className="text-2xl font-semibold mb-4">Boost</h1>
-                  <p className="text-muted-foreground">
-                    Aprenda sobre os diferentes tipos de boost disponíveis no jogo
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                <div className="bg-background rounded-lg p-4 border">
+                  <h3 className="font-semibold mb-2">📖 Documentation</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Detailed guides and explanations for Pokemon mechanics.
                   </p>
                 </div>
-
-                {/* Tabs de Navegação */}
-                <Tabs defaultValue="geral" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="geral">Geral</TabsTrigger>
-                    <TabsTrigger value="guia">Guia</TabsTrigger>
-                    <TabsTrigger value="dicas">Dicas</TabsTrigger>
-                  </TabsList>
-
-                  {/* Conteúdo Geral */}
-                  <TabsContent value="geral" className="space-y-4">
-                    <div className="rounded-lg border bg-card p-6">
-                      <h2 className="text-xl font-semibold mb-4 text-center">Visão Geral</h2>
-                      <p className="text-muted-foreground">
-                        Informações gerais sobre os diferentes tipos de boost disponíveis no jogo.
-                      </p>
-                    </div>
-
-                    {/* Exemplo de Imagem */}
-                    <div className="relative h-[300px] w-full rounded-lg overflow-hidden">
-                      <Image
-                        src="/placeholder.jpg"
-                        alt="Exemplo de Boost"
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  </TabsContent>
-
-                  {/* Guia Detalhado */}
-                  <TabsContent value="guia" className="space-y-4">
-                    <div className="rounded-lg border bg-card p-6">
-                      <h2 className="text-xl font-semibold mb-4 text-center">Como Usar Boosts</h2>
-                      <ol className="list-decimal list-inside space-y-2">
-                        <li>Onde encontrar boosts</li>
-                        <li>Como ativar diferentes tipos de boost</li>
-                        <li>Duração dos boosts</li>
-                      </ol>
-                    </div>
-                  </TabsContent>
-
-                  {/* Dicas e Truques */}
-                  <TabsContent value="dicas" className="space-y-4">
-                    <div className="rounded-lg border bg-card p-6">
-                      <h2 className="text-xl font-semibold mb-4 text-center">Dicas e Truques</h2>
-                      <ul className="list-disc list-inside space-y-2">
-                        <li>Melhores momentos para usar boost</li>
-                        <li>Combinações eficientes de boost</li>
-                        <li>Estratégias de maximização</li>
-                      </ul>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                
+                <div className="bg-background rounded-lg p-4 border">
+                  <h3 className="font-semibold mb-2">⚡ Strategies</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Battle strategies and team building recommendations.
+                  </p>
+                </div>
+                
+                <div className="bg-background rounded-lg p-4 border">
+                  <h3 className="font-semibold mb-2">🔧 Tools</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Helpful tools and calculators for Pokemon trainers.
+                  </p>
+                </div>
+                
+                <div className="bg-background rounded-lg p-4 border">
+                  <h3 className="font-semibold mb-2">🎯 Tips</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Pro tips and tricks for efficient Pokemon training.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <Sidebar />
       </div>
     </div>
   );

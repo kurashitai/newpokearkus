@@ -4,11 +4,17 @@ import { useMemo, useState, useEffect, useCallback, memo } from 'react';
 import Image from 'next/image';
 import { PokemonLocation } from '../types';
 
-function getTerrainType(z: number): string {
-  if (z > 7) return 'Subsolo';
-  if (z < 7) return 'Montanha';
-  return 'Planície';
-}
+// Estilos globais para animações
+const globalStyles = `
+  @keyframes bounce {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-10px);
+    }
+  }
+`;
 
 // Corrige nomes dos Pokémon
 function getFormattedPokemonName(name: string): string {
@@ -79,6 +85,7 @@ function PinpointComponent({
       clearTimeout(timeoutId);
     };
   }, []);
+
   // Reduz pins muito próximos e aplica viewport culling
   const filteredLocations = useMemo(() => {
     if (data.length === 0) return [];
@@ -149,16 +156,18 @@ function PinpointComponent({
     }
   }, [onPinClick, copyLocation]);
 
-  // Calcula transform style uma vez
+  // Calcula transform style uma vez com animação mais lenta
   const transformStyle = useMemo(() => ({
     transform: `scale(${isMobile ? 2.5 : 1.8}) translate(-25%, -50%)`,
-    transformOrigin: 'bottom center'
+    transformOrigin: 'bottom center',
+    animation: 'bounce 0.6s infinite alternate' // Mais lento - 0.6s em vez de 0.3s
   }), [isMobile]);
 
   if (data.length === 0 || !pokemon) return null;
 
   return (
     <>
+      <style jsx global>{globalStyles}</style>
       {filteredLocations.map((loc, index) => (
         <div
           key={`${pokemon.name}-${index}`}
@@ -195,7 +204,6 @@ function PinpointComponent({
               style={{ transform: `scale(${isMobile ? 0.4 : 1})` }}>
               {getFormattedPokemonName(pokemon.name)}<br/>
               ({Math.round(loc.x)}, {Math.round(loc.y)}, {Math.round(loc.z)})<br/>
-              {getTerrainType(loc.z)}
             </div>
           </div>
         </div>

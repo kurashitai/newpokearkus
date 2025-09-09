@@ -20,6 +20,9 @@ function HeatmapComponent({ data }: HeatmapComponentProps) {
     // Limpa o canvas de forma mais eficiente
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Log for debugging
+    console.log('HeatmapComponent rendered with data:', data);
+
     // Usa requestAnimationFrame para melhor performance
     const drawHeatmap = () => {
       // Desenha o heatmap para cada localização

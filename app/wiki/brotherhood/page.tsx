@@ -8,6 +8,8 @@ import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchButton } from "@/components/search-button";
 
+export const dynamic = 'force-dynamic';
+
 export default function WikiPage() {
   const [copied, setCopied] = useState<string | null>(null);
 

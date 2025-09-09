@@ -6243,7 +6243,7 @@ export const pokemonLocations: PokemonLocation[] = [
 
 {
     id: "farfetchd",
-    dexNumber: -1,
+    dexNumber: 83,
     name: "Farfetchd",
     samples: 71,
     locations: [
@@ -15735,7 +15735,7 @@ export const pokemonLocations: PokemonLocation[] = [
 
 {
     id: "nidoran male",
-    dexNumber: -1,
+    dexNumber: 32,
     name: "Nidoran Male",
     samples: 18,
     locations: [
@@ -15763,7 +15763,7 @@ export const pokemonLocations: PokemonLocation[] = [
 
 {
     id: "nidoran female",
-    dexNumber: -1,
+    dexNumber: 29,
     name: "Nidoran Female",
     samples: 22,
     locations: [
@@ -19639,17 +19639,6 @@ export const pokemonLocations: PokemonLocation[] = [
 },
 
 {
-    id: "outland torkoal",
-    dexNumber: -1,
-    name: "Outland Torkoal",
-    samples: 1,
-    locations: [
-      { x: 1680.0, y: 1190.0, z: 8.0, terrain: "Subsolo" }
-    ],
-    averageLocation: { x: 1680, y: 1190, z: 8, terrain: "Subsolo" }
-},
-
-{
     id: "nidoking",
     dexNumber: 34,
     name: "Nidoking",
@@ -21211,17 +21200,6 @@ export const pokemonLocations: PokemonLocation[] = [
       { x: 748.0, y: 1159.0, z: 11.0, terrain: "Subsolo" }
     ],
     averageLocation: { x: 701, y: 1133, z: 9, terrain: "Subsolo" }
-},
-
-{
-    id: "gigantamax gengar",
-    dexNumber: -1,
-    name: "Gigantamax Gengar",
-    samples: 1,
-    locations: [
-      { x: 93.0, y: 2292.0, z: 9.0, terrain: "Subsolo" }
-    ],
-    averageLocation: { x: 93, y: 2292, z: 9, terrain: "Subsolo" }
 },
 
 {
